@@ -11,8 +11,10 @@ glob(__dirname + '/views/*', function (err, files) {
             keys: [ 'style' ],
             defaults: { style: '*.whatever' }
         };
-        parcelMap(b, opts, function (graph) {
-            console.log(file, graph);
+        parcelMap(b, opts, function (err, graph) {
+            console.log('FILE', file);
+            console.log(graph);
+            console.log('--------------------------------');
         });
         b.bundle().on('end', next);
     })();
