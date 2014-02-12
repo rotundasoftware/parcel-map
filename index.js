@@ -2,6 +2,7 @@ var copy = require('shallow-copy');
 var glob = require('glob');
 var uniq = require('nub');
 var path = require('path');
+var fs = require('fs');
 
 module.exports = function (bundle, opts, cb) {
     var keypaths = opts.keys;
@@ -43,7 +44,10 @@ module.exports = function (bundle, opts, cb) {
     
     function done () {
         if (-- pending !== 0) return;
-        cb(null, files);
+        if (cb) cb(null, files);
+        
+        var outfile = opts.o || opts.outfile;
+        if (outfile) fs.writeFile(outfile, JSON.stringify(files));
     }
 };
 

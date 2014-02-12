@@ -70,6 +70,14 @@ It also found the `widget/style.css` from the widget module, because widget was
 included from `index.js`, so the lookup rules were triggered and the
 package.json in `widget/` was processed through the parcel-map rules.
 
+You can generate this parcel map output with the API directly or you can use
+parcel-map as a
+[browserify-plugin](https://github.com/substack/node-browserify#plugins):
+
+```
+$ browserify -p [ parcel-map -o map.json ] views/page1 > static/bundle.js
+```
+
 # methods
 
 ``` js
