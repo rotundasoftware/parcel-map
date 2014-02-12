@@ -1,6 +1,5 @@
 var browserify = require('browserify');
 var glob = require('glob');
-var path = require('path');
 var parcelMap = require('../');
 
 glob(__dirname + '/views/*', function (err, files) {
