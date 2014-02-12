@@ -52,15 +52,17 @@ The `index.js` requires two files, the `'upper.js'` in the local directory and
 the resulting parcel-map output is:
 
 ```
-{ '/home/substack/projects/parcel-map/example/views/page1/beep.css': 
-   { style: '*.css',
-     __dirname: '/home/substack/projects/parcel-map/example/views/page1' },
-  '/home/substack/projects/parcel-map/example/views/page1/images/beep.jpg': 
-   { style: '*.css',
-     __dirname: '/home/substack/projects/parcel-map/example/views/page1' },
-  '/home/substack/projects/parcel-map/example/node_modules/widget/style.css': 
-   { style: '*.css',
-     __dirname: '/home/substack/projects/parcel-map/example/node_modules/widget' } }
+{ packages: 
+   { bfcdcec7d6792ddedd77018b58c2982b7629dd32: 
+      { style: '*.css',
+        __dirname: '/home/substack/projects/parcel-map/example/views/page1' },
+     '197659f6bb4c3492b8fb0d88a21d06f066c3a29d': 
+      { style: '*.css',
+        __dirname: '/home/substack/projects/parcel-map/example/node_modules/widget' } },
+  assets: 
+   { '/home/substack/projects/parcel-map/example/views/page1/beep.css': 'bfcdcec7d6792ddedd77018b58c2982b7629dd32',
+     '/home/substack/projects/parcel-map/example/views/page1/images/beep.jpg': 'bfcdcec7d6792ddedd77018b58c2982b7629dd32',
+     '/home/substack/projects/parcel-map/example/node_modules/widget/style.css': '197659f6bb4c3492b8fb0d88a21d06f066c3a29d' } }
 ```
 
 Note how parcel-map found the local css in `page1/beep.css` and the image
@@ -75,7 +77,7 @@ parcel-map as a
 [browserify-plugin](https://github.com/substack/node-browserify#plugins):
 
 ```
-$ browserify -p [ parcel-map -o map.json ] views/page1 > static/bundle.js
+$ browserify -p [ parcel-map -k style -o map.json ] views/page1 > static/bundle.js
 ```
 
 # methods
@@ -87,11 +89,14 @@ var parcelMap = require('parcel-map');
 ## parcelMap(bundle, opts, cb)
 
 Pass in a browserify `bundle` and some `opts` in order to generate the parcel
-map and get the result in `cb(err, graph)`.
+map and get the result in `cb(err, parcelMap)`.
 
-`graph` maps file paths from the [glob](https://npmjs.org/package/glob)
-expansion of the resolved `opts.keys` and `opts.defaults` values to the
-package.json of the containing module (or "parcel").
+`parcelMap` is an object with `packages` and `assets` keys:
+
+* `parcelMap.packages` maps package.json shasums to package.json contents.
+* `parcelMap.assets` maps asset file paths captured from
+[glob expansion](https://npmjs.org/package/glob)
+to the containing package.json's shasum.
 
 The `opts` options are:
 
@@ -99,8 +104,8 @@ The `opts` options are:
 default values to use when there is no field present in the package.json at the
 location indicated
 * `opts.keys` - an array of keys, dotted keypath strings, or array keypaths that
-traverse into the package.json to values that are [glob
-strings](https://npmjs.org/package/glob).
+traverse into the package.json to values that are
+[glob strings](https://npmjs.org/package/glob).
 
 # install
 
