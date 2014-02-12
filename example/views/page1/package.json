@@ -1,5 +1,3 @@
 {
-  "name": "what",
-  "main": "index.js",
   "style": "*.css"
 }

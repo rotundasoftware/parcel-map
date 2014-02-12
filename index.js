@@ -3,7 +3,12 @@ var glob = require('glob');
 var uniq = require('nub');
 var path = require('path');
 
-module.exports = function (bundle, fn, cb) {
+module.exports = function (bundle, opts, cb) {
+    var keypaths = opts.k || opts.keys;
+    if (!keypaths) keypaths = [];
+    if (!Array.isArray()) keypaths = [ keypaths ];
+    var defaults = opts.defaults || {};
+    
     var files = [];
     var pending = 1;
     
@@ -12,7 +17,7 @@ module.exports = function (bundle, fn, cb) {
         var dir = path.dirname(file);
         if (!pkg.__dirname) pkg.__dirname = dir;
         
-        var globs = fn(copy(pkg));
+        var globs = getKeys(keypaths, defaults, copy(pkg));
         if (typeof globs === 'string') globs = [ globs ];
         if (!globs) globs = [];
         pending ++;
@@ -37,3 +42,18 @@ module.exports = function (bundle, fn, cb) {
         cb(uniq(files));
     }
 };
+
+function getKeys (keys, defaults, pkg) {
+    return keys.map(function (key) {
+        var cur = pkg, curDef = pkg;
+        
+        if (Array.isArray(key)) {
+            for (var i = 0; i < key.length - 1; i++) {
+                cur = cur && cur[key[i]];
+                curDef = curDef && curDef[key[i]];
+            }
+            key = key[i];
+        }
+        return (cur && cur[key]) || (curDef && curDef[key]);
+    }).filter(Boolean);
+}
