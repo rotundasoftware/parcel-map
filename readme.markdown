@@ -9,7 +9,7 @@ browserify's dependency graph.
 
 # example
 
-```
+``` js
 var browserify = require('browserify');
 var parcelMap = require('parcel-map');
 
@@ -26,7 +26,7 @@ b.bundle();
 
 For a `views/page1` directory with a package.json of:
 
-```
+``` json
 {
   "style": "*.css"
 }
