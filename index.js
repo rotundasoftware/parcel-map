@@ -48,7 +48,7 @@ module.exports = function (bundle, opts, cb) {
 };
 
 function getKeys (keys, defaults, pkg) {
-    return uniq(keys, Object.keys(defaults)).map(function (key) {
+    return uniq(keys.concat(Object.keys(defaults))).map(function (key) {
         var cur = pkg, curDef = defaults;
         
         if (Array.isArray(key)) {
