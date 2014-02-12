@@ -4,7 +4,7 @@ var uniq = require('nub');
 var path = require('path');
 
 module.exports = function (bundle, opts, cb) {
-    var keypaths = opts.k || opts.keys;
+    var keypaths = opts.keys;
     if (!keypaths) keypaths = [];
     if (!Array.isArray()) keypaths = [ keypaths ];
     var defaults = opts.defaults || {};
