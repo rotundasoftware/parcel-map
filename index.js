@@ -9,7 +9,7 @@ module.exports = function (bundle, opts, cb) {
     if (!Array.isArray()) keypaths = [ keypaths ];
     var defaults = opts.defaults || {};
     
-    var files = [];
+    var files = {};
     var pending = 1;
     
     bundle.on('package', function (file, pkg) {
@@ -27,7 +27,9 @@ module.exports = function (bundle, opts, cb) {
             
             var gfile = path.resolve(dir, globs.shift());
             glob(gfile, function (err, exp) {
-                files.push.apply(files, exp);
+                exp.forEach(function (file) {
+                    files[file] = pkg;
+                });
                 next();
             });
         })();
@@ -39,7 +41,7 @@ module.exports = function (bundle, opts, cb) {
     
     function done () {
         if (-- pending !== 0) return;
-        cb(uniq(files));
+        cb(files);
     }
 };
 

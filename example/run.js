@@ -10,7 +10,7 @@ glob(__dirname + '/views/*', function (err, files) {
         var b = browserify(file);
         var opts = {
             keys: [ 'style' ],
-            defaults: { style: '*.css' }
+            defaults: { style: '*.whatever' }
         };
         parcelMap(b, opts, function (graph) {
             console.log(file, graph);
