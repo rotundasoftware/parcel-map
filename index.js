@@ -13,6 +13,7 @@ module.exports = function (bundle, opts, cb) {
     
     var files = {};
     var packages = {};
+    var pkgCount = {};
     var pending = 1;
     
     bundle.on('package', function (file, pkg) {
@@ -21,6 +22,7 @@ module.exports = function (bundle, opts, cb) {
         if (!pkg.__dirname) pkg.__dirname = dir;
         var pkgid = shasum(pkg);
         packages[pkgid] = pkg;
+        pkgCount[pkgid] = 0;
         
         var globs = getKeys(keypaths, defaults, copy(pkg));
         if (typeof globs === 'string') globs = [ globs ];
@@ -36,6 +38,7 @@ module.exports = function (bundle, opts, cb) {
                 
                 exp.forEach(function (file) {
                     files[file] = pkgid;
+                    pkgCount[pkgid] ++;
                 });
                 next();
             });
@@ -48,7 +51,13 @@ module.exports = function (bundle, opts, cb) {
     
     function done () {
         if (-- pending !== 0) return;
-        var result = { packages: packages, assets: files };
+        var result = {
+            packages: Object.keys(packages).reduce(function (acc, key) {
+                if (pkgCount[key] > 0) acc[key] = packages[key];
+                return acc;
+            }, {}),
+            assets: files
+        };
         if (cb) cb(null, result);
         
         var outfile = opts.o || opts.outfile;
