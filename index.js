@@ -2,6 +2,7 @@ var copy = require('shallow-copy');
 var glob = require('glob');
 var uniq = require('nub');
 var path = require('path');
+var shasum = require('shasum');
 var fs = require('fs');
 
 module.exports = function (bundle, opts, cb) {
@@ -11,12 +12,15 @@ module.exports = function (bundle, opts, cb) {
     var defaults = opts.defaults || opts.d || {};
     
     var files = {};
+    var packages = {};
     var pending = 1;
     
     bundle.on('package', function (file, pkg) {
         if (!pkg) pkg = {};
         var dir = path.dirname(file);
         if (!pkg.__dirname) pkg.__dirname = dir;
+        var pkgid = shasum(pkg);
+        packages[pkgid] = pkg;
         
         var globs = getKeys(keypaths, defaults, copy(pkg));
         if (typeof globs === 'string') globs = [ globs ];
@@ -31,7 +35,7 @@ module.exports = function (bundle, opts, cb) {
                 if (err) return cb(err);
                 
                 exp.forEach(function (file) {
-                    files[file] = pkg;
+                    files[file] = pkgid;
                 });
                 next();
             });
@@ -44,10 +48,11 @@ module.exports = function (bundle, opts, cb) {
     
     function done () {
         if (-- pending !== 0) return;
-        if (cb) cb(null, files);
+        var result = { packages: packages, assets: files };
+        if (cb) cb(null, result);
         
         var outfile = opts.o || opts.outfile;
-        if (outfile) fs.writeFile(outfile, JSON.stringify(files, null, 2));
+        if (outfile) fs.writeFile(outfile, JSON.stringify(result, null, 2));
     }
 };
 
