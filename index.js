@@ -50,6 +50,9 @@ module.exports = function (bundle, opts, cb) {
 function getKeys (keys, defaults, pkg) {
     return uniq(keys.concat(Object.keys(defaults))).map(function (key) {
         var cur = pkg, curDef = defaults;
+        if (typeof key === 'string' && /\./.test(key)) {
+            key = key.split('.');
+        }
         
         if (Array.isArray(key)) {
             for (var i = 0; i < key.length - 1; i++) {
