@@ -27,6 +27,8 @@ module.exports = function (bundle, opts, cb) {
             
             var gfile = path.resolve(dir, globs.shift());
             glob(gfile, function (err, exp) {
+                if (err) return cb(err);
+                
                 exp.forEach(function (file) {
                     files[file] = pkg;
                 });
@@ -41,7 +43,7 @@ module.exports = function (bundle, opts, cb) {
     
     function done () {
         if (-- pending !== 0) return;
-        cb(files);
+        cb(null, files);
     }
 };
 
