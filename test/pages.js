@@ -1,6 +1,7 @@
 var test = require('tape');
 var browserify = require('browserify');
 var parcelMap = require('../');
+var path = require('path');
 
 var opts = {
     keys: [ 'style' ],
@@ -22,6 +23,7 @@ test('page1', function (t) {
     parcelMap(b, opts, function (graph) {
         t.deepEqual(graph, expected);
     });
+    b.bundle();
 });
 
 test('page2', function (t) {
@@ -35,6 +37,7 @@ test('page2', function (t) {
     parcelMap(b, opts, function (graph) {
         t.deepEqual(graph, expected);
     });
+    b.bundle();
 });
 
 test('page3', function (t) {
@@ -43,4 +46,5 @@ test('page3', function (t) {
     parcelMap(b, opts, function (graph) {
         t.deepEqual(graph, {});
     });
+    b.bundle();
 });
