@@ -5,10 +5,10 @@ var path = require('path');
 var fs = require('fs');
 
 module.exports = function (bundle, opts, cb) {
-    var keypaths = opts.keys;
+    var keypaths = opts.keys || opts.key || opts.k;
     if (!keypaths) keypaths = [];
     if (!Array.isArray()) keypaths = [ keypaths ];
-    var defaults = opts.defaults || {};
+    var defaults = opts.defaults || opts.d || {};
     
     var files = {};
     var pending = 1;
@@ -47,7 +47,7 @@ module.exports = function (bundle, opts, cb) {
         if (cb) cb(null, files);
         
         var outfile = opts.o || opts.outfile;
-        if (outfile) fs.writeFile(outfile, JSON.stringify(files));
+        if (outfile) fs.writeFile(outfile, JSON.stringify(files, null, 2));
     }
 };
 
