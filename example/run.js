@@ -8,7 +8,11 @@ glob(__dirname + '/views/*', function (err, files) {
         if (files.length === 0) return;
         var file = files.shift();
         var b = browserify(file);
-        parcelMap(b, { keys: [ 'style' ] }, function (graph) {
+        var opts = {
+            keys: [ 'style' ],
+            defaults: { style: '*.css' }
+        };
+        parcelMap(b, opts, function (graph) {
             console.log(file, graph);
         });
         b.bundle().on('end', next);
