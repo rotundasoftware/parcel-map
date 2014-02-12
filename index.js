@@ -1,30 +1,22 @@
 var copy = require('shallow-copy');
 var glob = require('glob');
+var uniq = require('nub');
+var path = require('path');
 
 module.exports = function (bundle, fn, cb) {
-    fn = function (pkg, f) {
-        if (!pkg) return [];
-        f([ pkg.style ].filter(Boolean));
-    };
-    
-    var graph = {};
-    
-    bundle.on('dep', function (dep) {
-        if (dep.entry) {
-            graph[dep.id] = {};
-        }
-        console.log(dep.id, dep.deps);
-    });
+    var files = [];
     
     bundle.on('package', function (file, pkg) {
-        
-        
-        fn(copy(pkg), function (files) {
-            //console.error(files);
+        if (!pkg) pkg = {};
+        if (!pkg.__dirname) pkg.__dirname = path.dirname(file);
+        fn(copy(pkg), function (xs) {
+            files.push.apply(files, xs);
         });
     });
     
     bundle.on('bundle', function (stream) {
-        stream.on('end', function () { cb(graph) });
+        stream.on('end', function () {
+            cb(uniq(files));
+        });
     });
 };
