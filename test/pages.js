@@ -57,11 +57,12 @@ test('page2', function (t) {
 });
 
 test('page3', function (t) {
-    t.plan(2);
+    t.plan(3);
     var b = browserify(__dirname + '/files/page3');
     parcelMap(b, opts, function (err, graph) {
         t.deepEqual(graph.packages, {});
         t.deepEqual(graph.assets, {});
+        t.deepEqual(graph.dependencies, {});
     });
     b.bundle();
 });

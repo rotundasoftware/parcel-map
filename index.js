@@ -21,6 +21,7 @@ module.exports = function (bundle, opts, cb) {
     
     bundle.on('dep', function (dep) {
         var files = values(dep.deps || {});
+        if (files.length === 0) return;
         var deps = {};
         files.forEach(function (file) { deps[file] = true });
         dependencies[dep.id] = deps;
