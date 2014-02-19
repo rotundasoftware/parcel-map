@@ -10,7 +10,7 @@ var opts = {
 };
 
 test('page1', function (t) {
-    t.plan(1);
+    t.plan(2);
     var b = browserify(__dirname + '/files/page1');
     var expected = { assets: {}, packages: {} };
     var x = {
@@ -30,13 +30,14 @@ test('page1', function (t) {
     expected.assets[require.resolve('widget/style.css')] = hy;
     
     parcelMap(b, opts, function (err, graph) {
-        t.deepEqual(graph, expected);
+        t.deepEqual(graph.packages, expected.packages);
+        t.deepEqual(graph.assets, expected.assets);
     });
     b.bundle();
 });
 
 test('page2', function (t) {
-    t.plan(1);
+    t.plan(2);
     var b = browserify(__dirname + '/files/page2');
     var expected = { assets: {}, packages: {} };
     
@@ -49,16 +50,18 @@ test('page2', function (t) {
     expected.assets[__dirname + '/files/page2/whee.whatever'] = hx;
     
     parcelMap(b, opts, function (err, graph) {
-        t.deepEqual(graph, expected);
+        t.deepEqual(graph.packages, expected.packages);
+        t.deepEqual(graph.assets, expected.assets);
     });
     b.bundle();
 });
 
 test('page3', function (t) {
-    t.plan(1);
+    t.plan(2);
     var b = browserify(__dirname + '/files/page3');
     parcelMap(b, opts, function (err, graph) {
-        t.deepEqual(graph, { packages: {}, assets: {} });
+        t.deepEqual(graph.packages, {});
+        t.deepEqual(graph.assets, {});
     });
     b.bundle();
 });
