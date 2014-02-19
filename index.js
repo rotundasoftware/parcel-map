@@ -13,8 +13,18 @@ module.exports = function (bundle, opts, cb) {
     
     var files = {};
     var packages = {};
+    var dependencies = {};
+    
     var pkgCount = {};
+    var pkgFiles = {};
     var pending = 1;
+    
+    bundle.on('dep', function (dep) {
+        var files = values(dep.deps || {});
+        var deps = {};
+        files.forEach(function (file) { deps[file] = true });
+        dependencies[dep.id] = deps;
+    });
     
     bundle.on('package', function (file, pkg) {
         if (!pkg) pkg = {};
@@ -23,6 +33,7 @@ module.exports = function (bundle, opts, cb) {
         var pkgid = shasum(pkg);
         packages[pkgid] = pkg;
         pkgCount[pkgid] = 0;
+        pkgFiles[file] = pkgid;
         
         var globs = getKeys(keypaths, defaults, copy(pkg));
         if (typeof globs === 'string') globs = [ globs ];
@@ -56,12 +67,29 @@ module.exports = function (bundle, opts, cb) {
                 if (pkgCount[key] > 0) acc[key] = packages[key];
                 return acc;
             }, {}),
-            assets: files
+            assets: files,
+            dependencies: Object.keys(dependencies).reduce(depReducer, {})
         };
         if (cb) cb(null, result);
         
         var outfile = opts.o || opts.outfile;
         if (outfile) fs.writeFile(outfile, JSON.stringify(result, null, 2));
+    }
+    
+    function depReducer (acc, file) {
+        var deps = Object.keys(dependencies[file]);
+        var pkgid = pkgFiles[file];
+        
+        acc[file] = deps
+            .map(function (id) {
+                if (pkgid === pkgFiles[id]) return null;
+                var did = pkgFiles[id];
+                if (pkgCount[did] === 0) return false;
+                return pkgFiles[id];
+            })
+            .filter(Boolean)
+        ;
+        return acc;
     }
 };
 
@@ -81,4 +109,8 @@ function getKeys (keys, defaults, pkg) {
         }
         return (cur && cur[key]) || (curDef && curDef[key]);
     }).filter(Boolean);
+}
+
+function values (obj) {
+    return Object.keys(obj).map(function (key) { return obj[key] });
 }
