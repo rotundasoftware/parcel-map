@@ -34,7 +34,6 @@ For a `views/page1` directory with a package.json of:
 
 and these files:
 
-
 ```
 page1/index.js
 page1/upper.js
@@ -64,7 +63,10 @@ the resulting parcel-map output is:
   assets: 
    { '/home/substack/projects/parcel-map/example/views/page1/beep.css': 'bfcdcec7d6792ddedd77018b58c2982b7629dd32',
      '/home/substack/projects/parcel-map/example/views/page1/images/beep.jpg': 'bfcdcec7d6792ddedd77018b58c2982b7629dd32',
-     '/home/substack/projects/parcel-map/example/node_modules/widget/style.css': '197659f6bb4c3492b8fb0d88a21d06f066c3a29d' } }
+     '/home/substack/projects/parcel-map/example/node_modules/widget/style.css': '197659f6bb4c3492b8fb0d88a21d06f066c3a29d' },
+  dependencies: 
+   { bfcdcec7d6792ddedd77018b58c2982b7629dd32: [ '197659f6bb4c3492b8fb0d88a21d06f066c3a29d' ],
+     '197659f6bb4c3492b8fb0d88a21d06f066c3a29d': [] } }
 ```
 
 Note how parcel-map found the local css in `page1/beep.css` and the image
@@ -93,12 +95,13 @@ var parcelMap = require('parcel-map');
 Pass in a browserify `bundle` and some `opts` in order to generate the parcel
 map and get the result in `cb(err, parcelMap)`.
 
-`parcelMap` is an object with `packages` and `assets` keys:
+`parcelMap` is an object with these keys:
 
-* `parcelMap.packages` maps package.json shasums to package.json contents.
-* `parcelMap.assets` maps asset file paths captured from
+* `"packages"` maps package.json shasums to package.json contents.
+* `"assets"` maps asset file paths captured from
 [glob expansion](https://npmjs.org/package/glob)
 to the containing package.json's shasum.
+* `"dependencies"` maps package shasums to a shasum array of its dependencies
 
 The `opts` options are:
 
