@@ -10,9 +10,9 @@ var opts = {
 };
 
 test('page1', function (t) {
-    t.plan(2);
+    t.plan(3);
     var b = browserify(__dirname + '/files/page1');
-    var expected = { assets: {}, packages: {} };
+    var expected = { assets: {}, packages: {}, dependencies: {} };
     var x = {
         style: '*.css',
         __dirname: __dirname + '/files/page1'
@@ -29,15 +29,18 @@ test('page1', function (t) {
     expected.packages[hy] = y;
     expected.assets[require.resolve('widget/style.css')] = hy;
     
+    expected.dependencies[hx] = [ hy ];
+    
     parcelMap(b, opts, function (err, graph) {
         t.deepEqual(graph.packages, expected.packages);
         t.deepEqual(graph.assets, expected.assets);
+        t.deepEqual(graph.dependencies, expected.dependencies);
     });
     b.bundle();
 });
 
 test('page2', function (t) {
-    t.plan(2);
+    t.plan(3);
     var b = browserify(__dirname + '/files/page2');
     var expected = { assets: {}, packages: {} };
     
@@ -52,6 +55,7 @@ test('page2', function (t) {
     parcelMap(b, opts, function (err, graph) {
         t.deepEqual(graph.packages, expected.packages);
         t.deepEqual(graph.assets, expected.assets);
+        t.deepEqual(graph.dependencies, {});
     });
     b.bundle();
 });
