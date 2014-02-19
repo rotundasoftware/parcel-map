@@ -30,6 +30,7 @@ test('page1', function (t) {
     expected.assets[require.resolve('widget/style.css')] = hy;
     
     expected.dependencies[hx] = [ hy ];
+    expected.dependencies[hy] = [];
     
     parcelMap(b, opts, function (err, graph) {
         t.deepEqual(graph.packages, expected.packages);

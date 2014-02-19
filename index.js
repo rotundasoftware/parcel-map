@@ -81,7 +81,7 @@ module.exports = function (bundle, opts, cb) {
         var deps = Object.keys(dependencies[file]);
         var pkgid = pkgFiles[file];
         
-        acc[file] = deps
+        acc[pkgid] = deps
             .map(function (id) {
                 if (pkgid === pkgFiles[id]) return null;
                 var did = pkgFiles[id];
