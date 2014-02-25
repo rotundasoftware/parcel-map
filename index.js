@@ -8,7 +8,7 @@ var fs = require('fs');
 module.exports = function (bundle, opts, cb) {
     var keypaths = opts.keys || opts.key || opts.k;
     if (!keypaths) keypaths = [];
-    if (!Array.isArray()) keypaths = [ keypaths ];
+    if (!Array.isArray(keypaths)) keypaths = [ keypaths ];
     var defaults = opts.defaults || opts.d || {};
     
     var files = {};
