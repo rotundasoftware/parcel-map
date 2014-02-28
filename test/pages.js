@@ -13,20 +13,18 @@ test('page1', function (t) {
     t.plan(3);
     var b = browserify(__dirname + '/files/page1');
     var expected = { assets: {}, packages: {}, dependencies: {} };
-    var x = {
+    var hy = shasum(path.dirname(require.resolve('widget/style.css')) + '!');
+    var hx = shasum(__dirname + '/files/page1!' + hy);
+    
+    expected.packages[hx] = {
         style: '*.css',
         __dirname: __dirname + '/files/page1'
     };
-    var hx = shasum(x);
-    expected.packages[hx] = x;
-    expected.assets[__dirname + '/files/page1/beep.css'] = hx;
-    
-    var y = {
+    expected.packages[hy] = {
         style: '*.css',
         __dirname: path.dirname(require.resolve('widget/style.css'))
     };
-    var hy = shasum(y);
-    expected.packages[hy] = y;
+    expected.assets[__dirname + '/files/page1/beep.css'] = hx;
     expected.assets[require.resolve('widget/style.css')] = hy;
     
     expected.dependencies[hx] = [ hy ];
@@ -45,12 +43,11 @@ test('page2', function (t) {
     var b = browserify(__dirname + '/files/page2');
     var expected = { assets: {}, packages: {} };
     
-    var x = {
+    var hx = shasum(__dirname + '/files/page2!');
+    expected.packages[hx] = {
         name: 'page2',
         __dirname: __dirname + '/files/page2'
     };
-    var hx = shasum(x);
-    expected.packages[hx] = x;
     expected.assets[__dirname + '/files/page2/whee.whatever'] = hx;
     
     parcelMap(b, opts, function (err, graph) {
