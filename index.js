@@ -63,13 +63,21 @@ module.exports = function (bundle, opts, cb) {
     function done () {
         if (-- pending !== 0) return;
         var pkgdeps = Object.keys(dependencies).reduce(depReducer, {});
-        var pkgids = {};
-        function getPkgId (dir) {
-            if (pkgids[dir]) return pkgids[dir];
-            var deps = (pkgdeps[dir] || []).map(getPkgId).sort();
-            pkgids[dir] = shasum(dir + '!' + deps.join(','));
-            return pkgids[dir];
-        }
+        var getPkgId = (function () {
+            var pkgids = {};
+            var walked = {};
+            return function get (dir) {
+                if (pkgids[dir]) return pkgids[dir];
+                walked[dir] = true;
+                var deps = (pkgdeps[dir] || [])
+                    .filter(function (x) { return !walked[x] })
+                    .map(get)
+                    .sort()
+                ;
+                pkgids[dir] = shasum(dir + '!' + deps.join(','));
+                return pkgids[dir];
+            }
+        })();
         
         var result = {
             packages: Object.keys(packages).reduce(function (acc, dir) {
