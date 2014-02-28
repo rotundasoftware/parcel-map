@@ -57,7 +57,9 @@ module.exports = function (bundle, opts, cb) {
     });
     
     bundle.once('bundle', function (stream) {
-        stream.on('end', done);
+        stream.on('end', function () {
+            process.nextTick(done);
+        });
     });
     
     function done () {
