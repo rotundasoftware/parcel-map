@@ -78,7 +78,10 @@ module.exports = function (bundle, opts, cb) {
                 acc[pkgid] = packages[dir];
                 return acc;
             }, {}),
-            assets: files,
+            assets: Object.keys(files).reduce(function (acc, file) {
+                acc[file] = getPkgId(files[file]);
+                return acc;
+            }, {}),
             dependencies: Object.keys(pkgdeps).reduce(function (acc, dir) {
                 var pkgid = getPkgId(dir);
                 acc[pkgid] = pkgdeps[dir].map(getPkgId);
