@@ -62,15 +62,29 @@ module.exports = function (bundle, opts, cb) {
     
     function done () {
         if (-- pending !== 0) return;
+        var pkgdeps = Object.keys(dependencies).reduce(depReducer, {});
+        var pkgids = Object.keys(packages).reduce(function (acc, dir) {
+            var pkg = packages[dir];
+            var deps = (pkgdeps[dir] || []).sort(); 
+            acc[dir] = shasum(dir + '!' + deps.join(','));
+            return acc;
+        }, {});
         
         var result = {
             packages: Object.keys(packages).reduce(function (acc, dir) {
-                var pkgid = dir;
-                if (pkgCount[dir] > 0) acc[pkgid] = packages[dir];
+                if (pkgCount[dir] === 0) return acc;
+                var pkgid = pkgids[dir];
+                acc[pkgid] = packages[dir];
                 return acc;
             }, {}),
             assets: files,
-            dependencies: Object.keys(dependencies).reduce(depReducer, {})
+            dependencies: Object.keys(pkgdeps).reduce(function (acc, dir) {
+                var pkgid = pkgids[dir];
+                acc[pkgid] = pkgdeps[dir].map(function (d) {
+                    return pkgids[d]
+                });
+                return acc;
+            }, {})
         };
         if (cb) cb(null, result);
         
