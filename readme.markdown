@@ -54,19 +54,19 @@ the resulting parcel-map output is:
 
 ```
 { packages: 
-   { bfcdcec7d6792ddedd77018b58c2982b7629dd32: 
+   { '2a0f0daf500f9de39847f70e6ded76b27543fdc3': 
       { style: '*.css',
         __dirname: '/home/substack/projects/parcel-map/example/views/page1' },
-     '197659f6bb4c3492b8fb0d88a21d06f066c3a29d': 
+     '80f1bf36696fb5ff6602576674c3a2774252a623': 
       { style: '*.css',
         __dirname: '/home/substack/projects/parcel-map/example/node_modules/widget' } },
   assets: 
-   { '/home/substack/projects/parcel-map/example/views/page1/beep.css': 'bfcdcec7d6792ddedd77018b58c2982b7629dd32',
-     '/home/substack/projects/parcel-map/example/views/page1/images/beep.jpg': 'bfcdcec7d6792ddedd77018b58c2982b7629dd32',
-     '/home/substack/projects/parcel-map/example/node_modules/widget/style.css': '197659f6bb4c3492b8fb0d88a21d06f066c3a29d' },
+   { '/home/substack/projects/parcel-map/example/views/page1/beep.css': '2a0f0daf500f9de39847f70e6ded76b27543fdc3',
+     '/home/substack/projects/parcel-map/example/views/page1/images/beep.jpg': '2a0f0daf500f9de39847f70e6ded76b27543fdc3',
+     '/home/substack/projects/parcel-map/example/node_modules/widget/style.css': '80f1bf36696fb5ff6602576674c3a2774252a623' },
   dependencies: 
-   { bfcdcec7d6792ddedd77018b58c2982b7629dd32: [ '197659f6bb4c3492b8fb0d88a21d06f066c3a29d' ],
-     '197659f6bb4c3492b8fb0d88a21d06f066c3a29d': [] } }
+   { '2a0f0daf500f9de39847f70e6ded76b27543fdc3': [ '80f1bf36696fb5ff6602576674c3a2774252a623' ],
+     '80f1bf36696fb5ff6602576674c3a2774252a623': [] } }
 ```
 
 Note how parcel-map found the local css in `page1/beep.css` and the image
@@ -97,11 +97,11 @@ map and get the result in `cb(err, parcelMap)`.
 
 `parcelMap` is an object with these keys:
 
-* `"packages"` maps package.json shasums to package.json contents.
+* `"packages"` maps package IDs to package.json contents.
 * `"assets"` maps asset file paths captured from
 [glob expansion](https://npmjs.org/package/glob)
-to the containing package.json's shasum.
-* `"dependencies"` maps package shasums to a shasum array of its dependencies
+to the containing package's ID.
+* `"dependencies"` maps package IDs to an array of dependency package IDs.
 
 The `opts` options are:
 
