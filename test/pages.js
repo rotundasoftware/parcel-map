@@ -68,3 +68,12 @@ test('page3', function (t) {
     });
     b.bundle();
 });
+
+test('page4 (cycles)', function (t) {
+    var b = browserify(__dirname + '/files/page4');
+    parcelMap(b, opts, function (err, graph) {
+        console.log(graph); 
+        t.end();
+    });
+    b.bundle();
+});
