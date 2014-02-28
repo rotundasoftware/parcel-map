@@ -31,10 +31,9 @@ module.exports = function (bundle, opts, cb) {
         if (!pkg) pkg = {};
         var dir = path.dirname(file);
         if (!pkg.__dirname) pkg.__dirname = dir;
-        var pkgid = shasum(pkg);
-        packages[pkgid] = pkg;
-        pkgCount[pkgid] = 0;
-        pkgFiles[file] = pkgid;
+        packages[dir] = pkg;
+        pkgCount[dir] = 0;
+        pkgFiles[file] = dir;
         
         var globs = getKeys(keypaths, defaults, copy(pkg));
         if (typeof globs === 'string') globs = [ globs ];
@@ -49,8 +48,8 @@ module.exports = function (bundle, opts, cb) {
                 if (err) return cb(err);
                 
                 exp.forEach(function (file) {
-                    files[file] = pkgid;
-                    pkgCount[pkgid] ++;
+                    files[file] = dir;
+                    pkgCount[dir] ++;
                 });
                 next();
             });
@@ -63,9 +62,11 @@ module.exports = function (bundle, opts, cb) {
     
     function done () {
         if (-- pending !== 0) return;
+        
         var result = {
-            packages: Object.keys(packages).reduce(function (acc, key) {
-                if (pkgCount[key] > 0) acc[key] = packages[key];
+            packages: Object.keys(packages).reduce(function (acc, dir) {
+                var pkgid = dir;
+                if (pkgCount[dir] > 0) acc[pkgid] = packages[dir];
                 return acc;
             }, {}),
             assets: files,
@@ -79,7 +80,8 @@ module.exports = function (bundle, opts, cb) {
     
     function depReducer (acc, file) {
         var deps = Object.keys(dependencies[file]);
-        var pkgid = pkgFiles[file];
+        var dir = pkgFiles[file];
+        var pkgid = dir;
         
         acc[pkgid] = deps
             .map(function (id) {
