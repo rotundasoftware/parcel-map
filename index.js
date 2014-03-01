@@ -29,35 +29,20 @@ module.exports = function (bundle, opts, cb) {
     
     bundle.on('package', function (file, pkg) {
         if (!pkg) pkg = {};
-        var globs, dir = pkg.__dirname;
         
-        if (!dir) {
-            dir = pkg.__dirname = path.dirname(file);
-            populateGlobs();
-        }
-        else if (!dir) {
-            findPackagePath(file, function (err, d) {
-                if (err) return cb(err);
-                dir = pkg.__dirname = d;
-                populateGlobs();
-            });
-        }
-        else populateGlobs();
+        var dir = pkg.__dirname;
+        if (!dir) dir = pkg.__dirname = path.dirname(file);
         
-        function populateGlobs () {
-            packages[dir] = pkg;
-            pkgCount[dir] = 0;
-            pkgFiles[file] = dir;
-            
-            globs = getKeys(keypaths, defaults, copy(pkg));
-            if (typeof globs === 'string') globs = [ globs ];
-            if (!globs) globs = [];
-            pending ++;
-            
-            next();
-        }
+        packages[dir] = pkg;
+        pkgCount[dir] = 0;
+        pkgFiles[file] = dir;
         
-        function next () {
+        var globs = getKeys(keypaths, defaults, copy(pkg));
+        if (typeof globs === 'string') globs = [ globs ];
+        if (!globs) globs = [];
+        pending ++;
+        
+        (function next () {
             if (globs.length === 0) return done();
             
             var gfile = path.resolve(dir, globs.shift());
@@ -70,7 +55,7 @@ module.exports = function (bundle, opts, cb) {
                 });
                 next();
             });
-        }
+        })();
     });
     
     bundle.once('bundle', function (stream) {
@@ -100,12 +85,10 @@ module.exports = function (bundle, opts, cb) {
         
         var result = {
             packages: Object.keys(packages).reduce(function (acc, dir) {
-                if (pkgCount[dir] === 0) {
+                if (pkgCount[dir] === 0 && !packages[dir].view) {
                     return acc;
-                    if (bundle._entries.every(function (x) {
-                        return path.dirname(x) !== dir;
-                    })) return acc;
                 }
+                
                 var pkgid = getPkgId(dir);
                 acc[pkgid] = packages[dir];
                 return acc;
