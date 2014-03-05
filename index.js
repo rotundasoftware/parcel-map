@@ -142,7 +142,9 @@ function getKeys (keys, defaults, pkg) {
             key = key[i];
         }
         return (cur && cur[key]) || (curDef && curDef[key]);
-    }).filter(Boolean);
+    })
+    .reduce(function (acc, g) { return acc.concat(g) }, [])
+    .filter(Boolean);
 }
 
 function values (obj) {
