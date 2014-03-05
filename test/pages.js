@@ -76,7 +76,7 @@ test('page4 (cycles)', function (t) {
     expected.packages = {};
     expected.packages['df225df2f82bff75d4a79f9b8bc636660b793588'] = {
         name: 'page4',
-        style: '*.css',
+        style: [ '*.css', '*.blah' ],
         __dirname: __dirname + '/files/page4'
     };
     expected.packages['7bc290756c03d0bcc98403c5525d6cc87884184f'] = {

@@ -1,4 +1,4 @@
 {
   "name": "page4",
-  "style": "*.css"
+  "style": ["*.css","*.blah"]
 }
