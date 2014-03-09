@@ -19,15 +19,15 @@ module.exports = function (bundle, opts, cb) {
     var pkgFiles = {};
     var pending = 1;
     
-    bundle.on('dep', function (dep) {
+    var onDep = function onDep(dep) {
         var files = values(dep.deps || {});
         if (files.length === 0) return;
         var deps = {};
         files.forEach(function (file) { deps[file] = true });
         dependencies[dep.id] = deps;
-    });
-    
-    bundle.on('package', function (file, pkg) {
+    };
+
+    var onPackage = function onPackage(file, pkg) {
         if (!pkg) pkg = {};
         
         var dir = pkg.__dirname;
@@ -44,19 +44,19 @@ module.exports = function (bundle, opts, cb) {
         
         (function next () {
             if (globs.length === 0) return done();
-            
+
             var gfile = path.resolve(dir, globs.shift());
-            glob(gfile, function (err, exp) {
-                if (err) return cb(err);
-                
-                exp.forEach(function (file) {
-                    files[file] = dir;
-                    pkgCount[dir] ++;
-                });
-                next();
+
+            glob.sync(gfile).forEach(function (file) {
+                files[file] = dir;
+                pkgCount[dir] ++;
             });
+            next();
         })();
-    });
+    };
+    
+    bundle.on( 'dep', onDep );
+    bundle.on( 'package', onPackage );
     
     bundle.once('bundle', function (stream) {
         stream.on('end', function () {
@@ -82,6 +82,10 @@ module.exports = function (bundle, opts, cb) {
                 return pkgids[dir];
             }
         })();
+
+        // clean up in case we are keeping the bundle instance around (e.g. for watching)
+        bundle.removeListener( 'dep', onDep );
+        bundle.removeListener( 'package', onPackage );
         
         var result = {
             packages: Object.keys(packages).reduce(function (acc, dir) {
