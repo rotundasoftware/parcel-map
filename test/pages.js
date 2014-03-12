@@ -72,45 +72,45 @@ test('page3', function (t) {
 test('page4 (cycles)', function (t) {
     t.plan(4);
     var expected = {};
-    
+
+    var expectedShasums = {};
+    expectedShasums.a = shasum( __dirname + "/files/page4/node_modules/a!" );
+    expectedShasums.b = shasum( __dirname + "/files/page4/node_modules/b!" + expectedShasums.a );
+    expectedShasums.page4 = shasum( __dirname + "/files/page4!" + expectedShasums.a + "," + expectedShasums.b );
+
     expected.packages = {};
-    expected.packages['766f36fe299bc4356d485794fd495c14c481e374'] = {
+    expected.packages[ expectedShasums.page4 ] = {
         name: 'page4',
         style: [ '*.css', '*.blah' ],
         __dirname: __dirname + '/files/page4'
     };
-    expected.packages['827ccbacf5a0a4e67a548bc09d9915ede44b857a'] = {
+    expected.packages[ expectedShasums.a ] = {
         style: 'a.css',
         __dirname: __dirname + '/files/page4/node_modules/a'
     };
-    expected.packages['88aa1ce0c503181494956f7e730cb1857dffab5f'] = {
+    expected.packages[ expectedShasums.b ] = {
         style: 'b.css',
         __dirname: __dirname + '/files/page4/node_modules/b'
     };
     
     expected.dependencies = {};
-    expected.dependencies['766f36fe299bc4356d485794fd495c14c481e374'] = [
-        '88aa1ce0c503181494956f7e730cb1857dffab5f',
-        '827ccbacf5a0a4e67a548bc09d9915ede44b857a'
+    expected.dependencies[ expectedShasums.page4 ] = [
+        expectedShasums.b,
+        expectedShasums.a
+        
     ];
-    expected.dependencies['88aa1ce0c503181494956f7e730cb1857dffab5f'] = [
-        '827ccbacf5a0a4e67a548bc09d9915ede44b857a'
+    expected.dependencies[ expectedShasums.a ] = [
+        expectedShasums.b
     ];
-    expected.dependencies['827ccbacf5a0a4e67a548bc09d9915ede44b857a'] = [
-        '88aa1ce0c503181494956f7e730cb1857dffab5f'
+    expected.dependencies[ expectedShasums.b ] = [
+        expectedShasums.a
     ];
     
     expected.assets = {};
-    expected.assets[__dirname + '/files/page4/beep.css']
-        = '766f36fe299bc4356d485794fd495c14c481e374'
-    ;
-    expected.assets[__dirname + '/files/page4/node_modules/a/a.css']
-        = '827ccbacf5a0a4e67a548bc09d9915ede44b857a'
-    ;
-    expected.assets[__dirname + '/files/page4/node_modules/b/b.css']
-        = '88aa1ce0c503181494956f7e730cb1857dffab5f'
-    ;
-    
+    expected.assets[__dirname + '/files/page4/beep.css'] = expectedShasums.page4;
+    expected.assets[__dirname + '/files/page4/node_modules/a/a.css'] = expectedShasums.a;
+    expected.assets[__dirname + '/files/page4/node_modules/b/b.css'] = expectedShasums.b;
+
     var b = browserify(__dirname + '/files/page4');
     parcelMap(b, opts, function (err, graph) {
         t.error(err);
