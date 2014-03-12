@@ -74,41 +74,41 @@ test('page4 (cycles)', function (t) {
     var expected = {};
     
     expected.packages = {};
-    expected.packages['df225df2f82bff75d4a79f9b8bc636660b793588'] = {
+    expected.packages['766f36fe299bc4356d485794fd495c14c481e374'] = {
         name: 'page4',
         style: [ '*.css', '*.blah' ],
         __dirname: __dirname + '/files/page4'
     };
-    expected.packages['7bc290756c03d0bcc98403c5525d6cc87884184f'] = {
+    expected.packages['827ccbacf5a0a4e67a548bc09d9915ede44b857a'] = {
         style: 'a.css',
         __dirname: __dirname + '/files/page4/node_modules/a'
     };
-    expected.packages['34ebb1455c45b0dc17fb895897456f1a2977f34e'] = {
+    expected.packages['88aa1ce0c503181494956f7e730cb1857dffab5f'] = {
         style: 'b.css',
         __dirname: __dirname + '/files/page4/node_modules/b'
     };
     
     expected.dependencies = {};
-    expected.dependencies['df225df2f82bff75d4a79f9b8bc636660b793588'] = [
-        '34ebb1455c45b0dc17fb895897456f1a2977f34e',
-        '7bc290756c03d0bcc98403c5525d6cc87884184f'
+    expected.dependencies['766f36fe299bc4356d485794fd495c14c481e374'] = [
+        '88aa1ce0c503181494956f7e730cb1857dffab5f',
+        '827ccbacf5a0a4e67a548bc09d9915ede44b857a'
     ];
-    expected.dependencies['34ebb1455c45b0dc17fb895897456f1a2977f34e'] = [
-        '7bc290756c03d0bcc98403c5525d6cc87884184f'
+    expected.dependencies['88aa1ce0c503181494956f7e730cb1857dffab5f'] = [
+        '827ccbacf5a0a4e67a548bc09d9915ede44b857a'
     ];
-    expected.dependencies['7bc290756c03d0bcc98403c5525d6cc87884184f'] = [
-        '34ebb1455c45b0dc17fb895897456f1a2977f34e'
+    expected.dependencies['827ccbacf5a0a4e67a548bc09d9915ede44b857a'] = [
+        '88aa1ce0c503181494956f7e730cb1857dffab5f'
     ];
     
     expected.assets = {};
     expected.assets[__dirname + '/files/page4/beep.css']
-        = 'df225df2f82bff75d4a79f9b8bc636660b793588'
+        = '766f36fe299bc4356d485794fd495c14c481e374'
     ;
     expected.assets[__dirname + '/files/page4/node_modules/a/a.css']
-        = '7bc290756c03d0bcc98403c5525d6cc87884184f'
+        = '827ccbacf5a0a4e67a548bc09d9915ede44b857a'
     ;
     expected.assets[__dirname + '/files/page4/node_modules/b/b.css']
-        = '34ebb1455c45b0dc17fb895897456f1a2977f34e'
+        = '88aa1ce0c503181494956f7e730cb1857dffab5f'
     ;
     
     var b = browserify(__dirname + '/files/page4');
