@@ -4,8 +4,11 @@ var uniq = require('nub');
 var path = require('path');
 var shasum = require('shasum');
 var fs = require('fs');
+var EventEmitter = require( 'events' ).EventEmitter;
 
 module.exports = function (bundle, opts, cb) {
+    var eventEmitter = new EventEmitter();
+
     var keypaths = opts.keys || opts.key || opts.k;
     if (!keypaths) keypaths = [];
     if (!Array.isArray(keypaths)) keypaths = [ keypaths ];
@@ -63,6 +66,8 @@ module.exports = function (bundle, opts, cb) {
             process.nextTick(done);
         });
     });
+
+    return eventEmitter;
     
     function done () {
         if (-- pending !== 0) return;
@@ -89,9 +94,12 @@ module.exports = function (bundle, opts, cb) {
         
         var result = {
             packages: Object.keys(packages).reduce(function (acc, dir) {
-                if (pkgCount[dir] === 0 && !packages[dir].view) {
-                    return acc;
-                }
+                // we used to get rid of packages that dont have assets or directly
+                // but we want to know about them if they ahve indirect dependencies.
+                // just keep all packages around for now, see where it gets us.
+                // if (pkgCount[dir] === 0 && !packages[dir].view) {
+                //     return acc;
+                // }
                 
                 var pkgid = getPkgId(dir);
                 acc[pkgid] = packages[dir];
@@ -108,6 +116,7 @@ module.exports = function (bundle, opts, cb) {
             }, {})
         };
         if (cb) cb(null, result);
+        eventEmitter.emit( 'done', result );
         
         var outfile = opts.o || opts.outfile;
         if (outfile) fs.writeFile(outfile, JSON.stringify(result, null, 2));
