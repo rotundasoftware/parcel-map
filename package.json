@@ -1,7 +1,7 @@
 {
   "name": "parcel-map",
   "description": "gather asset information from file globs in package.json",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "author": {
     "name": "Rotunda Software",
     "email": "support@rotundasoftware.com"
@@ -34,11 +34,11 @@
     "browserify",
     "browserify-plugin",
     "cartero",
-		"asset",
-		"asset manager",
-		"css",
-		"javascript",
-		"html"
+    "asset",
+    "asset manager",
+    "css",
+    "javascript",
+    "html"
   ],
   "dependencies": {
     "shallow-copy": "~0.0.1",
