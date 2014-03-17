@@ -5,11 +5,13 @@ var path = require('path');
 var shasum = require('shasum');
 var fs = require('fs');
 var EventEmitter = require( 'events' ).EventEmitter;
+var mothership = require( 'mothership' );
 
 module.exports = function (bundle, opts, cb) {
     var eventEmitter = new EventEmitter();
 
     var keypaths = opts.keys || opts.key || opts.k;
+    var packageFilter = opts.packageFilter;
     if (!keypaths) keypaths = [];
     if (!Array.isArray(keypaths)) keypaths = [ keypaths ];
     var defaults = opts.defaults || opts.d || {};
@@ -30,32 +32,47 @@ module.exports = function (bundle, opts, cb) {
         dependencies[dep.id] = deps;
     };
 
-    var onPackage = function onPackage(file, pkg) {
-        if (!pkg) pkg = {};
-        
-        var dir = pkg.__dirname;
-        if (!dir) dir = pkg.__dirname = path.dirname(file);
-        
-        packages[dir] = pkg;
-        pkgCount[dir] = 0;
-        pkgFiles[file] = dir;
-        
-        var globs = getKeys(keypaths, defaults, copy(pkg));
-        if (typeof globs === 'string') globs = [ globs ];
-        if (!globs) globs = [];
-        pending ++;
-        
-        (function next () {
-            if (globs.length === 0) return done();
+    var onPackage = function onPackage(file) {
+        mothership( file, function() { return true; }, function( err, res ) {
+            if(err) {
+                eventEmitter.emit( 'error', err );
+                if (cb) cb(err);
+            }
 
-            var gfile = path.resolve(dir, globs.shift());
+            // if a file has no mothership package.json, it is not relevant for
+            // the purposes of a parcel. parcels do not care about 'orphaned' js files.
+            if(!res) return;
+        
+            var pkg = res.pack;
+            var dir = path.dirname( res.path );
 
-            glob.sync(gfile).forEach(function (file) {
-                files[file] = dir;
-                pkgCount[dir] ++;
-            });
-            next();
-        })();
+            if( packages[dir] ) return; // if we've already registered this package, don't do it again (avoid cycles)
+
+            if(typeof packageFilter === 'function') pkg = packageFilter(pkg, dir);
+            
+            pkg.path = dir;
+            
+            packages[dir] = pkg;
+            pkgCount[dir] = 0;
+            pkgFiles[file] = dir;
+            
+            var globs = getKeys(keypaths, defaults, copy(pkg));
+            if (typeof globs === 'string') globs = [ globs ];
+            if (!globs) globs = [];
+            pending ++;
+            
+            (function next () {
+                if (globs.length === 0) return done();
+
+                var gfile = path.resolve(dir, globs.shift());
+
+                glob.sync(gfile).forEach(function (file) {
+                    files[file] = dir;
+                    pkgCount[dir] ++;
+                });
+                next();
+            })();
+        });
     };
     
     bundle.on( 'dep', onDep );
@@ -91,7 +108,7 @@ module.exports = function (bundle, opts, cb) {
         // clean up in case we are keeping the bundle instance around (e.g. for watching)
         bundle.removeListener( 'dep', onDep );
         bundle.removeListener( 'package', onPackage );
-        
+
         var result = {
             packages: Object.keys(packages).reduce(function (acc, dir) {
                 // we used to get rid of packages that dont have assets or directly
@@ -162,15 +179,4 @@ function getKeys (keys, defaults, pkg) {
 
 function values (obj) {
     return Object.keys(obj).map(function (key) { return obj[key] });
-}
-
-function findPackagePath (file, cb) {
-    if (file === '/') return cb(null, undefined);
-    
-    var dir = path.dirname(file);
-    var pkgfile = path.join(dir, 'package.json');
-    fs.exists(pkgfile, function (ex) {
-        if (ex) return cb(null, pkgfile);
-        findPackagePath(dir, cb);
-    });
 }

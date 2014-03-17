@@ -18,11 +18,11 @@ test('page1', function (t) {
     
     expected.packages[hx] = {
         style: '*.css',
-        __dirname: __dirname + '/files/page1'
+        path: __dirname + '/files/page1'
     };
     expected.packages[hy] = {
         style: '*.css',
-        __dirname: path.dirname(require.resolve('widget/style.css'))
+        path: path.dirname(require.resolve('widget/style.css'))
     };
     expected.assets[__dirname + '/files/page1/beep.css'] = hx;
     expected.assets[require.resolve('widget/style.css')] = hy;
@@ -46,7 +46,7 @@ test('page2', function (t) {
     var hx = shasum(__dirname + '/files/page2!');
     expected.packages[hx] = {
         name: 'page2',
-        __dirname: __dirname + '/files/page2'
+        path: __dirname + '/files/page2'
     };
     expected.assets[__dirname + '/files/page2/whee.whatever'] = hx;
     
@@ -61,8 +61,16 @@ test('page2', function (t) {
 test('page3', function (t) {
     t.plan(3);
     var b = browserify(__dirname + '/files/page3');
+    var expected = { assets: {}, packages: {}, dependencies: {} };
+    var hx = shasum(__dirname + '/files/page3!' );
+    
+    expected.packages[hx] = {
+        name : 'page3',
+        path: __dirname + '/files/page3'
+    };
+
     parcelMap(b, opts, function (err, graph) {
-        t.deepEqual(graph.packages, {});
+        t.deepEqual(graph.packages, expected.packages);
         t.deepEqual(graph.assets, {});
         t.deepEqual(graph.dependencies, {});
     });
@@ -82,15 +90,15 @@ test('page4 (cycles)', function (t) {
     expected.packages[ expectedShasums.page4 ] = {
         name: 'page4',
         style: [ '*.css', '*.blah' ],
-        __dirname: __dirname + '/files/page4'
+        path: __dirname + '/files/page4'
     };
     expected.packages[ expectedShasums.a ] = {
         style: 'a.css',
-        __dirname: __dirname + '/files/page4/node_modules/a'
+        path: __dirname + '/files/page4/node_modules/a'
     };
     expected.packages[ expectedShasums.b ] = {
         style: 'b.css',
-        __dirname: __dirname + '/files/page4/node_modules/b'
+        path: __dirname + '/files/page4/node_modules/b'
     };
     
     expected.dependencies = {};
@@ -112,6 +120,37 @@ test('page4 (cycles)', function (t) {
     expected.assets[__dirname + '/files/page4/node_modules/b/b.css'] = expectedShasums.b;
 
     var b = browserify(__dirname + '/files/page4');
+    parcelMap(b, opts, function (err, graph) {
+        t.error(err);
+        t.deepEqual(graph.packages, expected.packages);
+        t.deepEqual(graph.dependencies, expected.dependencies);
+        t.deepEqual(graph.assets, expected.assets);
+    });
+    b.bundle();
+});
+
+
+test('page5', function (t) {
+    t.plan(4);
+    var b = browserify(__dirname + '/files/page5');
+    var expected = { assets: {}, packages: {}, dependencies: {} };
+    var hy = shasum(__dirname + '/files' + '!');
+    var hx = shasum(__dirname + '/files/page5!' + hy);
+
+    expected.packages[hx] = {
+        style: ['*.css'],
+        path: __dirname + '/files/page5'
+    };
+    expected.packages[hy] = {
+        style: 'common.css',
+        path: __dirname + '/files'
+    };
+    expected.assets[__dirname + '/files/page5/beep.css'] = hx;
+    expected.assets[__dirname + '/files/common.css'] = hy;
+
+    expected.dependencies[hx] = [ hy ];
+
+    var b = browserify(__dirname + '/files/page5');
     parcelMap(b, opts, function (err, graph) {
         t.error(err);
         t.deepEqual(graph.packages, expected.packages);
