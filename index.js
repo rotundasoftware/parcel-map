@@ -27,11 +27,12 @@ module.exports = function (bundle, opts, cb) {
     
     var onDep = function onDep(dep) {
         var files = values(dep.deps || {});
+        if(dep.entry) mainFile = dep.id;
+
         if (files.length === 0) return;
         var deps = {};
         files.forEach(function (file) { deps[file] = true });
         dependencies[dep.id] = deps;
-        if(dep.entry) mainFile = dep.id;
     };
 
     var onPackage = function onPackage(file, pkg) {
@@ -114,16 +115,15 @@ module.exports = function (bundle, opts, cb) {
         bundle.removeListener( 'package', onPackage );
 
         var mainPackageDir;
-        if( mainFile ) mainPackageDir = pkgFiles[mainFile];
+        if(pkgFiles[mainFile])
+            mainPackageDir = pkgFiles[mainFile];
         else {
-            var packageDirs = Object.keys(packages);
-            if( packageDirs.length !== 1 ) {
-                var err = new Error( 'Could not determine main / entry point package.' );
-                eventEmitter.emit( 'error', err );
-                if (cb) return cb(err);
-            }
-            mainPackageDir = packageDirs[0];
+            // if the main file has no package.json, we never get a package event.
+            // However, we need a main package, so create one!
+            mainPackageDir = path.dirname(mainFile);
+            packages[mainPackageDir] = {};
         }
+        
         packages[mainPackageDir].__isMain = true;
 
         var result = {
