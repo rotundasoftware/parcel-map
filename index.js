@@ -33,25 +33,27 @@ module.exports = function (bundle, opts, cb) {
     };
 
     var onPackage = function onPackage(file) {
-        mothership( file, function() { return true; }, function( err, res ) {
+         mothership( file, function() { return true; }, function( err, res ) {
             if(err) {
                 eventEmitter.emit( 'error', err );
                 if (cb) cb(err);
             }
 
+            pending ++;
+ 
             // if a file has no mothership package.json, it is not relevant for
             // the purposes of a parcel. parcels do not care about 'orphaned' js files.
-            if(!res) return;
+            if(!res) return done();
         
             var pkg = res.pack;
             var dir = path.dirname( res.path );
 
-            if( packages[dir] ) return; // if we've already registered this package, don't do it again (avoid cycles)
+            if( packages[dir] ) return done(); // if we've already registered this package, don't do it again (avoid cycles)
 
             if(typeof packageFilter === 'function') pkg = packageFilter(pkg, dir);
-            
+
             pkg.path = dir;
-            
+
             packages[dir] = pkg;
             pkgCount[dir] = 0;
             pkgFiles[file] = dir;
@@ -59,8 +61,7 @@ module.exports = function (bundle, opts, cb) {
             var globs = getKeys(keypaths, defaults, copy(pkg));
             if (typeof globs === 'string') globs = [ globs ];
             if (!globs) globs = [];
-            pending ++;
-            
+
             (function next () {
                 if (globs.length === 0) return done();
 
