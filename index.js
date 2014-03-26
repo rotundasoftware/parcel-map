@@ -51,6 +51,8 @@ module.exports = function (bundle, opts, cb) {
 
            // var dir = pkg.__dirname || path.dirname( file );
 
+            pkgFiles[file] = dir;
+
             if( packages[dir] ) return; // if we've already registered this package, don't do it again (avoid cycles)
 
             if(typeof packageFilter === 'function') pkg = packageFilter(pkg, dir);
@@ -59,7 +61,6 @@ module.exports = function (bundle, opts, cb) {
             
             packages[dir] = pkg;
             pkgCount[dir] = 0;
-            pkgFiles[file] = dir;
             
             var globs = getKeys(keypaths, defaults, copy(pkg));
             if (typeof globs === 'string') globs = [ globs ];
