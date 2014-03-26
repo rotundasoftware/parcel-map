@@ -23,6 +23,7 @@ module.exports = function (bundle, opts, cb) {
     var pkgCount = {};
     var pkgFiles = {};
     var pending = 1;
+    var mainFile;
     
     var onDep = function onDep(dep) {
         var files = values(dep.deps || {});
@@ -30,30 +31,31 @@ module.exports = function (bundle, opts, cb) {
         var deps = {};
         files.forEach(function (file) { deps[file] = true });
         dependencies[dep.id] = deps;
+        if(dep.entry) mainFile = dep.id;
     };
 
-    var onPackage = function onPackage(file) {
-         mothership( file, function() { return true; }, function( err, res ) {
+    var onPackage = function onPackage(file, pkg) {
+        mothership( file, function() { return true; }, function( err, res ) {
             if(err) {
                 eventEmitter.emit( 'error', err );
-                if (cb) cb(err);
+                if (cb) return cb(err);
             }
 
-            pending ++;
- 
             // if a file has no mothership package.json, it is not relevant for
             // the purposes of a parcel. parcels do not care about 'orphaned' js files.
-            if(!res) return done();
+            if(!res) return;
         
             var pkg = res.pack;
             var dir = path.dirname( res.path );
 
-            if( packages[dir] ) return done(); // if we've already registered this package, don't do it again (avoid cycles)
+           // var dir = pkg.__dirname || path.dirname( file );
+
+            if( packages[dir] ) return; // if we've already registered this package, don't do it again (avoid cycles)
 
             if(typeof packageFilter === 'function') pkg = packageFilter(pkg, dir);
-
-            pkg.path = dir;
-
+            
+            pkg.__path = dir;
+            
             packages[dir] = pkg;
             pkgCount[dir] = 0;
             pkgFiles[file] = dir;
@@ -61,7 +63,8 @@ module.exports = function (bundle, opts, cb) {
             var globs = getKeys(keypaths, defaults, copy(pkg));
             if (typeof globs === 'string') globs = [ globs ];
             if (!globs) globs = [];
-
+            pending ++;
+            
             (function next () {
                 if (globs.length === 0) return done();
 
@@ -110,6 +113,19 @@ module.exports = function (bundle, opts, cb) {
         bundle.removeListener( 'dep', onDep );
         bundle.removeListener( 'package', onPackage );
 
+        var mainPackageDir;
+        if( mainFile ) mainPackageDir = pkgFiles[mainFile];
+        else {
+            var packageDirs = Object.keys(packages);
+            if( packageDirs.length !== 1 ) {
+                var err = new Error( 'Could not determine main / entry point package.' );
+                eventEmitter.emit( 'error', err );
+                if (cb) return cb(err);
+            }
+            mainPackageDir = packageDirs[0];
+        }
+        packages[mainPackageDir].__isMain = true;
+
         var result = {
             packages: Object.keys(packages).reduce(function (acc, dir) {
                 // we used to get rid of packages that dont have assets or directly
@@ -149,7 +165,7 @@ module.exports = function (bundle, opts, cb) {
             .map(function (id) {
                 if (pkgid === pkgFiles[id]) return null;
                 var did = pkgFiles[id];
-                if (pkgCount[did] === 0) return false;
+                //if (pkgCount[did] === 0) return false;
                 return pkgFiles[id];
             })
             .filter(Boolean)
