@@ -164,3 +164,23 @@ test('page5', function (t) {
     });
     b.bundle();
 });
+
+test('page6', function(t) {
+    t.plan(4);
+    var b = browserify(__dirname + '/files/page6' );
+
+    var expectedDependencies = {};
+
+    var underscoreShasum = shasum( path.join( __dirname, 'files/page6/node_modules/underscore' ) + "!" );
+    var page6Shasum = shasum( path.join( __dirname, 'files/page6' ) + "!" + underscoreShasum );
+
+    expectedDependencies[ page6Shasum ] = [ underscoreShasum ];
+
+    parcelMap(b, {}, function (err, graph) {
+        t.error(err);
+        t.deepEqual( graph.dependencies, expectedDependencies );
+        t.ok( graph.packages[ underscoreShasum ] );
+        t.ok( graph.packages[ page6Shasum ] );
+    });
+    b.bundle();
+})
