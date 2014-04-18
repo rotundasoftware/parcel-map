@@ -16,12 +16,11 @@ module.exports = function (bundle, opts, cb) {
     if (!Array.isArray(keypaths)) keypaths = [ keypaths ];
     var defaults = opts.defaults || opts.d || {};
     
-    var files = {};
-    var packages = {};
+    var files = opts.files || {};
+    var packages = opts.packages || {};
     var dependencies = {};
     
     var pkgCount = {};
-    var pkgFiles = {};
     var pending = 1;
     var mainFile;
     
@@ -51,9 +50,11 @@ module.exports = function (bundle, opts, cb) {
 
            // var dir = pkg.__dirname || path.dirname( file );
 
-            pkgFiles[file] = dir;
+            files[file] = dir;
 
-            if( packages[dir] ) return; // if we've already registered this package, don't do it again (avoid cycles)
+            if( packages[dir] ) {
+                return; // if we've already registered this package, don't do it again (avoid cycles)
+            }
 
             if(typeof packageFilter === 'function') pkg = packageFilter(pkg, dir);
             
@@ -95,11 +96,13 @@ module.exports = function (bundle, opts, cb) {
     function done () {
         if (-- pending !== 0) return;
         var pkgdeps = Object.keys(dependencies).reduce(depReducer, {});
+
         var getPkgId = (function () {
             var pkgids = {};
             var walked = {};
             return function get (dir) {
                 if (pkgids[dir]) return pkgids[dir];
+
                 walked[dir] = true;
                 var deps = (pkgdeps[dir] || [])
                     .filter(function (x) { return !walked[x] })
@@ -116,8 +119,8 @@ module.exports = function (bundle, opts, cb) {
         bundle.removeListener( 'package', onPackage );
 
         var mainPackageDir;
-        if(pkgFiles[mainFile])
-            mainPackageDir = pkgFiles[mainFile];
+        if(files[mainFile])
+            mainPackageDir = files[mainFile];
         else {
             // if the main file has no package.json, we never get a package event.
             // However, we need a main package, so create one!
@@ -150,6 +153,7 @@ module.exports = function (bundle, opts, cb) {
                 return acc;
             }, {})
         };
+
         if (cb) cb(null, result);
         eventEmitter.emit( 'done', result );
         
@@ -159,21 +163,40 @@ module.exports = function (bundle, opts, cb) {
     
     function depReducer (acc, file) {
         var deps = Object.keys(dependencies[file]);
-        var dir = pkgFiles[file];
+        var dir = files[file];
         var pkgid = dir;
         
         acc[pkgid] = deps
             .map(function (id) {
-                if (pkgid === pkgFiles[id]) return null;
-                var did = pkgFiles[id];
+                if (pkgid === files[id]) return null;
+                var did = files[id];
                 //if (pkgCount[did] === 0) return false;
-                return pkgFiles[id];
+                return files[id];
             })
             .filter(Boolean)
         ;
         return acc;
     }
 };
+
+// function mothership(start, ismothership, cb) {
+//   (function findShip (root) {
+//     findParentDir(root, 'package.json', function (err, packageDir) {
+//       if (err) return cb(err);
+//       if (!packageDir) return cb();
+
+//       var pack;
+//       try {
+//         pack = fs.readFileSync( path.join(packageDir, 'package.json'), 'utf8' );
+//         if (ismothership(pack)) return cb(null, { path: path.join(packageDir, 'package.json'), pack: pack });
+//         findShip(path.resolve(root, '..'));
+//       } catch (e) {
+//         cb(e);
+//       }
+//     });
+
+//   })(start);
+// }
 
 function getKeys (keys, defaults, pkg) {
     return uniq(keys.concat(Object.keys(defaults))).map(function (key) {
