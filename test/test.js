@@ -26,7 +26,11 @@ test('page1', function (t) {
         __path: path.dirname(require.resolve('widget/style.css'))
     };
     expected.assets[__dirname + '/files/page1/beep.css'] = hx;
+    expected.assets[__dirname + '/files/page1/index.js'] = hx;
+    expected.assets[__dirname + '/files/page1/upper.js'] = hx;
     expected.assets[require.resolve('widget/style.css')] = hy;
+    expected.assets[require.resolve('widget/index.js')] = hy;
+    expected.assets[require.resolve('widget/index.jade')] = hy;
     
     expected.dependencies[hx] = [ hy ];
     expected.dependencies[hy] = [];
@@ -51,6 +55,7 @@ test('page2', function (t) {
         __isMain: true
     };
     expected.assets[__dirname + '/files/page2/whee.whatever'] = hx;
+    expected.assets[__dirname + '/files/page2/index.js'] = hx;
     
     parcelMap(b, opts, function (err, graph) {
         t.deepEqual(graph.packages, expected.packages);
@@ -72,9 +77,11 @@ test('page3', function (t) {
         __isMain: true
     };
 
+    expected.assets[__dirname + '/files/page3/index.js'] = hx;
+
     parcelMap(b, opts, function (err, graph) {
         t.deepEqual(graph.packages, expected.packages);
-        t.deepEqual(graph.assets, {});
+        t.deepEqual(graph.assets, expected.assets);
         t.deepEqual(graph.dependencies, {});
     });
     b.bundle();
@@ -120,8 +127,11 @@ test('page4 (cycles)', function (t) {
     
     expected.assets = {};
     expected.assets[__dirname + '/files/page4/beep.css'] = expectedShasums.page4;
+    expected.assets[__dirname + '/files/page4/index.js'] = expectedShasums.page4;
     expected.assets[__dirname + '/files/page4/node_modules/a/a.css'] = expectedShasums.a;
+    expected.assets[__dirname + '/files/page4/node_modules/a/index.js'] = expectedShasums.a;
     expected.assets[__dirname + '/files/page4/node_modules/b/b.css'] = expectedShasums.b;
+    expected.assets[__dirname + '/files/page4/node_modules/b/index.js'] = expectedShasums.b;
 
     var b = browserify(__dirname + '/files/page4');
     parcelMap(b, opts, function (err, graph) {
@@ -150,8 +160,10 @@ test('page5', function (t) {
         style: 'common.css',
         __path: __dirname + '/files'
     };
+    expected.assets[__dirname + '/files/page5/index.js'] = hx;
     expected.assets[__dirname + '/files/page5/beep.css'] = hx;
     expected.assets[__dirname + '/files/common.css'] = hy;
+    expected.assets[__dirname + '/files/common.js'] = hy;
 
     expected.dependencies[hx] = [ hy ];
 

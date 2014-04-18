@@ -154,6 +154,7 @@ module.exports = function (bundle, opts, cb) {
             }, {})
         };
 
+
         if (cb) cb(null, result);
         eventEmitter.emit( 'done', result );
         
