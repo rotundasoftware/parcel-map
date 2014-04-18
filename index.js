@@ -128,8 +128,6 @@ module.exports = function (bundle, opts, cb) {
             packages[mainPackageDir] = {};
         }
         
-        packages[mainPackageDir].__isMain = true;
-
         var result = {
             packages: Object.keys(packages).reduce(function (acc, dir) {
                 // we used to get rid of packages that dont have assets or directly
@@ -151,9 +149,9 @@ module.exports = function (bundle, opts, cb) {
                 var pkgid = getPkgId(dir);
                 acc[pkgid] = pkgdeps[dir].map(getPkgId);
                 return acc;
-            }, {})
+            }, {}),
+            mainPackageId: getPkgId(mainPackageDir)
         };
-
 
         if (cb) cb(null, result);
         eventEmitter.emit( 'done', result );

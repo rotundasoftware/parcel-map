@@ -18,8 +18,7 @@ test('page1', function (t) {
     
     expected.packages[hx] = {
         style: '*.css',
-        __path: __dirname + '/files/page1',
-        __isMain: true
+        __path: __dirname + '/files/page1'
     };
     expected.packages[hy] = {
         style: '*.css',
@@ -51,8 +50,7 @@ test('page2', function (t) {
     var hx = shasum(__dirname + '/files/page2!');
     expected.packages[hx] = {
         name: 'page2',
-        __path: __dirname + '/files/page2',
-        __isMain: true
+        __path: __dirname + '/files/page2'
     };
     expected.assets[__dirname + '/files/page2/whee.whatever'] = hx;
     expected.assets[__dirname + '/files/page2/index.js'] = hx;
@@ -73,8 +71,7 @@ test('page3', function (t) {
     
     expected.packages[hx] = {
         name : 'page3',
-        __path: __dirname + '/files/page3',
-        __isMain: true
+        __path: __dirname + '/files/page3'
     };
 
     expected.assets[__dirname + '/files/page3/index.js'] = hx;
@@ -100,8 +97,7 @@ test('page4 (cycles)', function (t) {
     expected.packages[ expectedShasums.page4 ] = {
         name: 'page4',
         style: [ '*.css', '*.blah' ],
-        __path: __dirname + '/files/page4',
-        __isMain: true
+        __path: __dirname + '/files/page4'
     };
     expected.packages[ expectedShasums.a ] = {
         style: 'a.css',
@@ -153,8 +149,7 @@ test('page5', function (t) {
 
     expected.packages[hx] = {
         style: ['*.css'],
-        __path: __dirname + '/files/page5',
-        __isMain: true
+        __path: __dirname + '/files/page5'
     };
     expected.packages[hy] = {
         style: 'common.css',
