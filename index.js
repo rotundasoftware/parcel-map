@@ -6,6 +6,7 @@ var shasum = require('shasum');
 var fs = require('fs');
 var EventEmitter = require( 'events' ).EventEmitter;
 var mothership = require( 'mothership' );
+var _ = require( 'underscore' );
 
 module.exports = function (bundle, opts, cb) {
     var eventEmitter = new EventEmitter();
@@ -17,7 +18,8 @@ module.exports = function (bundle, opts, cb) {
     var defaults = opts.defaults || opts.d || {};
     
     var files = opts.files || {};
-    var packages = opts.packages || {};
+    var packages = {};
+    var oldPackages = opts.packages;
     var dependencies = {};
     
     var pkgCount = {};
@@ -29,8 +31,8 @@ module.exports = function (bundle, opts, cb) {
         if(dep.entry) mainFile = dep.id;
 
         if (files.length === 0) return;
-        var deps = {};
-        files.forEach(function (file) { deps[file] = true });
+        var deps = dependencies[dep.id] || [];
+        files.forEach(function (file) { deps.push( file ) });
         dependencies[dep.id] = deps;
     };
 
@@ -95,7 +97,28 @@ module.exports = function (bundle, opts, cb) {
     
     function done () {
         if (-- pending !== 0) return;
-        var pkgdeps = Object.keys(dependencies).reduce(depReducer, {});
+
+        packages = _.extend( {}, oldPackages, packages );
+
+        var pkgdeps = Object.keys(dependencies).reduce( function( acc, file ) {
+            var deps = dependencies[file];
+            var dir = files[file];
+            var pkgid = dir;
+            
+            if( ! acc[pkgid] ) acc[pkgid] = [];
+
+            acc[pkgid] = acc[pkgid].concat( deps
+                .map(function (id) {
+                    if (pkgid === files[id]) return null;
+                    var did = files[id];
+
+                    //if (pkgCount[did] === 0) return false;
+                    return did;
+                })
+                .filter(Boolean) );
+
+            return acc;
+        }, {});
 
         var getPkgId = (function () {
             var pkgids = {};
@@ -127,7 +150,7 @@ module.exports = function (bundle, opts, cb) {
             mainPackageDir = path.dirname(mainFile);
             packages[mainPackageDir] = {};
         }
-        
+
         var result = {
             packages: Object.keys(packages).reduce(function (acc, dir) {
                 // we used to get rid of packages that dont have assets or directly
@@ -158,23 +181,6 @@ module.exports = function (bundle, opts, cb) {
         
         var outfile = opts.o || opts.outfile;
         if (outfile) fs.writeFile(outfile, JSON.stringify(result, null, 2));
-    }
-    
-    function depReducer (acc, file) {
-        var deps = Object.keys(dependencies[file]);
-        var dir = files[file];
-        var pkgid = dir;
-        
-        acc[pkgid] = deps
-            .map(function (id) {
-                if (pkgid === files[id]) return null;
-                var did = files[id];
-                //if (pkgCount[did] === 0) return false;
-                return files[id];
-            })
-            .filter(Boolean)
-        ;
-        return acc;
     }
 };
 
