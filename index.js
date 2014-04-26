@@ -37,6 +37,8 @@ module.exports = function (bundle, opts, cb) {
     };
 
     var onPackage = function onPackage(file, pkg) {
+        pending ++;
+
         mothership( file, function() { return true; }, function( err, res ) {
             if(err) {
                 eventEmitter.emit( 'error', err );
@@ -45,7 +47,7 @@ module.exports = function (bundle, opts, cb) {
 
             // if a file has no mothership package.json, it is not relevant for
             // the purposes of a parcel. parcels do not care about 'orphaned' js files.
-            if(!res) return;
+            if(!res) return done();
         
             var pkg = res.pack;
             var dir = path.dirname( res.path );
@@ -55,7 +57,7 @@ module.exports = function (bundle, opts, cb) {
             files[file] = dir;
 
             if( packages[dir] ) {
-                return; // if we've already registered this package, don't do it again (avoid cycles)
+                return done(); // if we've already registered this package, don't do it again (avoid cycles)
             }
 
             if(typeof packageFilter === 'function') pkg = packageFilter(pkg, dir);
@@ -68,7 +70,6 @@ module.exports = function (bundle, opts, cb) {
             var globs = getKeys(keypaths, defaults, copy(pkg));
             if (typeof globs === 'string') globs = [ globs ];
             if (!globs) globs = [];
-            pending ++;
             
             (function next () {
                 if (globs.length === 0) return done();
@@ -84,14 +85,15 @@ module.exports = function (bundle, opts, cb) {
         });
     };
     
-    bundle.on( 'dep', onDep );
-    bundle.on( 'package', onPackage );
-    
-    bundle.once('bundle', function (stream) {
-        stream.on('end', function () {
+    var onBundle = function(stream) {
+        stream.once('end', function () {
             process.nextTick(done);
         });
-    });
+    }
+
+    bundle.on( 'dep', onDep );
+    bundle.on( 'package', onPackage );
+    bundle.once( 'bundle', onBundle );
 
     return eventEmitter;
     
@@ -140,6 +142,7 @@ module.exports = function (bundle, opts, cb) {
         // clean up in case we are keeping the bundle instance around (e.g. for watching)
         bundle.removeListener( 'dep', onDep );
         bundle.removeListener( 'package', onPackage );
+        bundle.removeListener( 'bundle', onBundle );
 
         var mainPackageDir;
         if(files[mainFile])
@@ -177,6 +180,7 @@ module.exports = function (bundle, opts, cb) {
         };
 
         if (cb) cb(null, result);
+
         eventEmitter.emit( 'done', result );
         
         var outfile = opts.o || opts.outfile;
