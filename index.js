@@ -131,7 +131,7 @@ module.exports = function (bundle, opts, cb) {
 
                 walked[dir] = true;
                 var deps = (pkgdeps[dir] || [])
-                    .filter(function (x) { return !walked[x] || pkgids[dir]})
+                    .filter(function (x) { return !walked[x] || pkgids[x]})
                     .map(get)
                     .sort()
                 ;
