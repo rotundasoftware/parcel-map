@@ -89,8 +89,8 @@ test('page4 (cycles)', function (t) {
     var expected = {};
 
     var expectedShasums = {};
-    expectedShasums.a = shasum( __dirname + "/files/page4/node_modules/a!" );
-    expectedShasums.b = shasum( __dirname + "/files/page4/node_modules/b!" + expectedShasums.a );
+    expectedShasums.b = shasum( __dirname + "/files/page4/node_modules/b!" );
+    expectedShasums.a = shasum( __dirname + "/files/page4/node_modules/a!" + expectedShasums.b );
     expectedShasums.page4 = shasum( __dirname + "/files/page4!" + expectedShasums.a + "," + expectedShasums.b );
 
     expected.packages = {};
@@ -110,8 +110,8 @@ test('page4 (cycles)', function (t) {
     
     expected.dependencies = {};
     expected.dependencies[ expectedShasums.page4 ] = [
-        expectedShasums.b,
-        expectedShasums.a
+        expectedShasums.a,
+        expectedShasums.b
         
     ];
     expected.dependencies[ expectedShasums.a ] = [

@@ -117,24 +117,26 @@ module.exports = function (bundle, opts, cb) {
                     //if (pkgCount[did] === 0) return false;
                     return did;
                 })
-                .filter(Boolean) );
+                .filter(Boolean) ).sort();
 
             return acc;
         }, {});
 
+        var pkgids = {};
+        var walked = {};
+
         var getPkgId = (function () {
-            var pkgids = {};
-            var walked = {};
             return function get (dir) {
                 if (pkgids[dir]) return pkgids[dir];
 
                 walked[dir] = true;
                 var deps = (pkgdeps[dir] || [])
-                    .filter(function (x) { return !walked[x] })
+                    .filter(function (x) { return !walked[x] || pkgids[dir]})
                     .map(get)
                     .sort()
                 ;
                 pkgids[dir] = shasum(dir + '!' + deps.join(','));
+
                 return pkgids[dir];
             }
         })();
