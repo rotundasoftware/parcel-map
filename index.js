@@ -27,16 +27,18 @@ module.exports = function (bundle, opts, cb) {
     var mainFile;
     
     var onDep = function onDep(dep) {
+        console.log( dep );
+
         var files = values(dep.deps || {});
-        if(dep.entry) mainFile = dep.id;
+        if(dep.entry) mainFile = dep.file;
 
         if (files.length === 0) return;
-        var deps = dependencies[dep.id] || [];
+        var deps = dependencies[dep.file] || [];
         files.forEach(function (file) { deps.push( file ) });
-        dependencies[dep.id] = deps;
+        dependencies[dep.file] = deps;
     };
 
-    var onPackage = function onPackage(file, pkg) {
+    var onPackage = function onPackage(file) {
         pending ++;
 
         mothership( file, function() { return true; }, function( err, res ) {
@@ -92,7 +94,7 @@ module.exports = function (bundle, opts, cb) {
     }
 
     bundle.on( 'dep', onDep );
-    bundle.on( 'package', onPackage );
+    bundle.on( 'file', onPackage );
     bundle.once( 'bundle', onBundle );
 
     return eventEmitter;
@@ -101,6 +103,9 @@ module.exports = function (bundle, opts, cb) {
         if (-- pending !== 0) return;
 
         packages = _.extend( {}, oldPackages, packages );
+
+        console.log( dependencies );
+        console.log( packages );
 
         var pkgdeps = Object.keys(dependencies).reduce( function( acc, file ) {
             var deps = dependencies[file];
@@ -180,6 +185,8 @@ module.exports = function (bundle, opts, cb) {
             }, {}),
             mainPackageId: getPkgId(mainPackageDir)
         };
+
+        console.log( '****', result );
 
         if (cb) cb(null, result);
 
