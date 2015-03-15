@@ -7,6 +7,7 @@ var fs = require('fs');
 var EventEmitter = require( 'events' ).EventEmitter;
 var mothership = require( 'mothership' );
 var _ = require( 'underscore' );
+var through = require( 'through2' );
 
 module.exports = function (bundle, opts, cb) {
     var eventEmitter = new EventEmitter();
@@ -26,28 +27,41 @@ module.exports = function (bundle, opts, cb) {
     var pending = 1;
     var mainFile;
 
-    console.log( bundle );
-    
-   bundle.pipeline.get( 'label' ).push( through.obj( function ( row, enc, next ) {
-        console.log( '**' );
-        // row.source = row.source.toUpperCase();
-        // this.push(row);
+   // bundle.pipeline.get( 'label' ).unshift( through.obj( function ( row, enc, next ) {
+   //      console.log( row, '*******' );
+   //      // row.source = row.source.toUpperCase();
+   //      // this.push(row);
+   //      next();
+   //  } ) );
+
+   bundle.pipeline.get( 'label' ).unshift( through.obj( function ( dep, enc, next ) {
+       // console.log( dep );
+
+        var files = values( dep.deps || {} );
+        if( dep.entry ) mainFile = dep.file;
+
+        if( files.length === 0 ) return next();
+
+        var deps = dependencies[ dep.file ] || [];
+        files.forEach( function( file ) { deps.push( file ) } );
+        dependencies[ dep.file ] = deps;
+
         next();
     } ) );
     
-    var onDep = function onDep(dep) {
-        console.log( dep );
+    // var onDep = function onDep(dep) {
+    //     console.log( dep );
 
-        var files = values(dep.deps || {});
-        if(dep.entry) mainFile = dep.file;
+    //     var files = values(dep.deps || {});
+    //     if(dep.entry) mainFile = dep.file;
 
-        if (files.length === 0) return;
-        var deps = dependencies[dep.file] || [];
-        files.forEach(function (file) { deps.push( file ) });
-        dependencies[dep.file] = deps;
-    };
+    //     if (files.length === 0) return;
+    //     var deps = dependencies[dep.file] || [];
+    //     files.forEach(function (file) { deps.push( file ) });
+    //     dependencies[dep.file] = deps;
+    // };
 
-    var onPackage = function onPackage(file) {
+    var onPackage = function onPackage( file ) {
         pending ++;
 
         mothership( file, function() { return true; }, function( err, res ) {
@@ -102,19 +116,20 @@ module.exports = function (bundle, opts, cb) {
         });
     }
 
-    bundle.on( 'dep', onDep );
-    bundle.on( 'file', onPackage );
+    //bundle.on( 'dep', onDep );
+    bundle.on( 'package', onPackage );
     bundle.once( 'bundle', onBundle );
 
     return eventEmitter;
     
     function done () {
-        if (-- pending !== 0) return;
+          console.log( dependencies );
+        console.log( packages );
+
+      if (-- pending !== 0) return;
 
         packages = _.extend( {}, oldPackages, packages );
 
-        console.log( dependencies );
-        console.log( packages );
 
         var pkgdeps = Object.keys(dependencies).reduce( function( acc, file ) {
             var deps = dependencies[file];

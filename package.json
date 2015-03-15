@@ -41,11 +41,12 @@
     "html"
   ],
   "dependencies": {
-    "underscore": "~1.6.0",
+    "glob": "~3.2.8",
+    "mothership": "~0.1.0",
+    "nub": "~0.0.0",
     "shallow-copy": "~0.0.1",
     "shasum": "~1.0.0",
-    "nub": "~0.0.0",
-    "glob": "~3.2.8",
-    "mothership": "~0.1.0"
+    "through2": "^0.6.3",
+    "underscore": "~1.6.0"
   }
 }
