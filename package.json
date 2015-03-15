@@ -27,7 +27,7 @@
     "test": "tape test/*.js"
   },
   "devDependencies": {
-    "browserify": "~3.28.2",
+    "browserify": "~9.0.3",
     "tape": "~2.4.2"
   },
   "keywords": [

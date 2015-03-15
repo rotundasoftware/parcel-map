@@ -25,6 +25,15 @@ module.exports = function (bundle, opts, cb) {
     var pkgCount = {};
     var pending = 1;
     var mainFile;
+
+    console.log( bundle );
+    
+   bundle.pipeline.get( 'label' ).push( through.obj( function ( row, enc, next ) {
+        console.log( '**' );
+        // row.source = row.source.toUpperCase();
+        // this.push(row);
+        next();
+    } ) );
     
     var onDep = function onDep(dep) {
         console.log( dep );
