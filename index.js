@@ -9,216 +9,181 @@ var mothership = require( 'mothership' );
 var _ = require( 'underscore' );
 var through = require( 'through2' );
 
-module.exports = function (bundle, opts, cb) {
-    var eventEmitter = new EventEmitter();
+module.exports = function( bundle, opts, cb ) {
+	var eventEmitter = new EventEmitter();
 
-    var keypaths = opts.keys || opts.key || opts.k;
-    var packageFilter = opts.packageFilter;
-    if (!keypaths) keypaths = [];
-    if (!Array.isArray(keypaths)) keypaths = [ keypaths ];
-    var defaults = opts.defaults || opts.d || {};
-    
-    var files = opts.files || {};
-    var packages = {};
-    var oldPackages = opts.packages;
-    var dependencies = {};
-    
-    var pkgCount = {};
-    var pending = 1;
-    var mainFile;
+	var keypaths = opts.keys || opts.key || opts.k;
+	var packageFilter = opts.packageFilter;
+	if (!keypaths) keypaths = [];
+	if (!Array.isArray(keypaths)) keypaths = [ keypaths ];
+	var defaults = opts.defaults || opts.d || {};
+	
+	var files = opts.files || {};
+	var packages = {};
+	var oldPackages = opts.packages;
+	var dependencies = {};
+	
+	var mainFile;
 
-   // bundle.pipeline.get( 'label' ).unshift( through.obj( function ( row, enc, next ) {
-   //      console.log( row, '*******' );
-   //      // row.source = row.source.toUpperCase();
-   //      // this.push(row);
-   //      next();
-   //  } ) );
+	bundle.pipeline.get( 'label' ).unshift( through.obj( function ( row, enc, next ) {
+		var thisFilePath = row.file;
+		var thisFileIsTheMainFile = row.entry;
+		var thisFileDependencies = _.values( row.deps || {} );
 
-   bundle.pipeline.get( 'label' ).unshift( through.obj( function ( dep, enc, next ) {
-       // console.log( dep );
+		if( fs.lstatSync( thisFilePath ).isDirectory() ) {
+			var err = new Error( 'Parcel map can not operate on directories. Please specify the full entry point path when running browserify.' );
+			eventEmitter.emit( 'error', err );
+			return cb( err );
+		}
+	
+		if( thisFileIsTheMainFile ) mainFile = thisFilePath;
 
-        var files = values( dep.deps || {} );
-        if( dep.entry ) mainFile = dep.file;
+		if( thisFileDependencies.length ) {
+			if( ! dependencies[ thisFilePath ] ) dependencies[ thisFilePath ] = [];
+			dependencies[ thisFilePath ] = dependencies[ thisFilePath ].concat( thisFileDependencies );
+		}
+		
+		mothership( thisFilePath, function() { return true; }, function( err, res ) {
+			if( err ) {
+				eventEmitter.emit( 'error', err );
+				if( cb ) return cb( err );
+			}
 
-        if( files.length === 0 ) return next();
+			// if a file has no mothership package.json, it is not relevant for
+			// the purposes of a parcel. parcels do not care about 'orphaned' js files.
+			if( ! res ) return next();
 
-        var deps = dependencies[ dep.file ] || [];
-        files.forEach( function( file ) { deps.push( file ) } );
-        dependencies[ dep.file ] = deps;
+			var pkg = res.pack;
+			var dir = path.dirname( res.path );
 
-        next();
-    } ) );
-    
-    // var onDep = function onDep(dep) {
-    //     console.log( dep );
+			files[ thisFilePath ] = dir;
 
-    //     var files = values(dep.deps || {});
-    //     if(dep.entry) mainFile = dep.file;
+			// if we've already registered this package, don't do it again (avoid cycles)
+			if( packages[ dir ] ) return next();
+			if( typeof packageFilter === 'function' ) pkg = packageFilter( pkg, dir );
+		
+			pkg.__path = dir;
+			
+			packages[ dir ] = pkg;
 
-    //     if (files.length === 0) return;
-    //     var deps = dependencies[dep.file] || [];
-    //     files.forEach(function (file) { deps.push( file ) });
-    //     dependencies[dep.file] = deps;
-    // };
+			var globs = getKeys( keypaths, defaults, copy( pkg ) );
+			if( typeof globs === 'string' ) globs = [ globs ];
+			if( ! globs ) globs = [];
+			
 
-    var onPackage = function onPackage( file ) {
-        pending ++;
+			_.each( globs, function( thisGlob ) {
+				var thisGlobAbsPath = path.resolve( dir, thisGlob );
 
-        mothership( file, function() { return true; }, function( err, res ) {
-            if(err) {
-                eventEmitter.emit( 'error', err );
-                if (cb) return cb(err);
-            }
+				glob.sync( thisGlobAbsPath ).forEach( function( thisAssetPath ) {
+					files[ thisAssetPath ] = dir;
+				} );
+			} );
 
-            // if a file has no mothership package.json, it is not relevant for
-            // the purposes of a parcel. parcels do not care about 'orphaned' js files.
-            if(!res) return done();
-        
-            var pkg = res.pack;
-            var dir = path.dirname( res.path );
+			next();
+		} );
+	} ) );
 
-           // var dir = pkg.__dirname || path.dirname( file );
+	bundle.pipeline.get( 'wrap' ).push( through.obj( function ( row, enc, next ) {
+		finish();
+	} ) );
 
-            files[file] = dir;
+	function finish() {
+		console.log( '*****' );
+		console.log( dependencies );
+		console.log( packages );
 
-            if( packages[dir] ) {
-                return done(); // if we've already registered this package, don't do it again (avoid cycles)
-            }
+		packages = _.extend( {}, oldPackages, packages );
 
-            if(typeof packageFilter === 'function') pkg = packageFilter(pkg, dir);
-            
-            pkg.__path = dir;
-            
-            packages[dir] = pkg;
-            pkgCount[dir] = 0;
-            
-            var globs = getKeys(keypaths, defaults, copy(pkg));
-            if (typeof globs === 'string') globs = [ globs ];
-            if (!globs) globs = [];
-            
-            (function next () {
-                if (globs.length === 0) return done();
+		var pkgdeps = Object.keys(dependencies).reduce( function( acc, file ) {
+			var deps = dependencies[file];
+			var dir = files[file];
+			var pkgid = dir;
+			
+			if( ! acc[pkgid] ) acc[pkgid] = [];
 
-                var gfile = path.resolve(dir, globs.shift());
+			acc[pkgid] = acc[pkgid].concat( deps
+				.map(function (id) {
+					if (pkgid === files[id]) return null;
+					var did = files[id];
 
-                glob.sync(gfile).forEach(function (file) {
-                    files[file] = dir;
-                    pkgCount[dir] ++;
-                });
-                next();
-            })();
-        });
-    };
-    
-    var onBundle = function(stream) {
-        stream.once('end', function () {
-            process.nextTick(done);
-        });
-    }
+					//if (pkgCount[did] === 0) return false;
+					return did;
+				})
+				.filter(Boolean) ).sort();
 
-    //bundle.on( 'dep', onDep );
-    bundle.on( 'package', onPackage );
-    bundle.once( 'bundle', onBundle );
+			return acc;
+		}, {});
 
-    return eventEmitter;
-    
-    function done () {
-          console.log( dependencies );
-        console.log( packages );
+		var pkgids = {};
+		var walked = {};
 
-      if (-- pending !== 0) return;
+		var getPkgId = (function () {
+			return function get (dir) {
+				if (pkgids[dir]) return pkgids[dir];
 
-        packages = _.extend( {}, oldPackages, packages );
+				walked[dir] = true;
+				var deps = (pkgdeps[dir] || [])
+					.filter(function (x) { return !walked[x] || pkgids[x]})
+					.map(get)
+					.sort()
+				;
+				pkgids[dir] = shasum(dir + '!' + deps.join(','));
 
+				return pkgids[dir];
+			}
+		})();
 
-        var pkgdeps = Object.keys(dependencies).reduce( function( acc, file ) {
-            var deps = dependencies[file];
-            var dir = files[file];
-            var pkgid = dir;
-            
-            if( ! acc[pkgid] ) acc[pkgid] = [];
+		// clean up in case we are keeping the bundle instance around (e.g. for watching)
+		//bundle.removeListener( 'dep', onDep );
+		//bundle.removeListener( 'file', onFile );
+	   // bundle.removeListener( 'bundle', onBundle );
 
-            acc[pkgid] = acc[pkgid].concat( deps
-                .map(function (id) {
-                    if (pkgid === files[id]) return null;
-                    var did = files[id];
+		var mainPackageDir;
+		if(files[mainFile])
+			mainPackageDir = files[mainFile];
+		else {
+			// if the main file has no package.json, we never get a package event.
+			// However, we need a main package, so create one!
+			mainPackageDir = path.dirname(mainFile);
+			packages[mainPackageDir] = {};
+		}
 
-                    //if (pkgCount[did] === 0) return false;
-                    return did;
-                })
-                .filter(Boolean) ).sort();
+		var result = {
+			packages: Object.keys(packages).reduce(function (acc, dir) {
+				// we used to get rid of packages that dont have assets or directly
+				// but we want to know about them if they ahve indirect dependencies.
+				// just keep all packages around for now, see where it gets us.
+				// if (pkgCount[dir] === 0 && !packages[dir].view) {
+				//     return acc;
+				// }
+				
+				var pkgid = getPkgId(dir);
+				acc[pkgid] = packages[dir];
+				return acc;
+			}, {}),
+			assets: Object.keys(files).reduce(function (acc, file) {
+				acc[file] = getPkgId(files[file]);
+				return acc;
+			}, {}),
+			dependencies: Object.keys(pkgdeps).reduce(function (acc, dir) {
+				var pkgid = getPkgId(dir);
+				acc[pkgid] = pkgdeps[dir].map(getPkgId);
+				return acc;
+			}, {}),
+			mainPackageId: getPkgId(mainPackageDir)
+		};
 
-            return acc;
-        }, {});
+	   // console.log( '****', result );
 
-        var pkgids = {};
-        var walked = {};
+		if (cb) cb(null, result);
 
-        var getPkgId = (function () {
-            return function get (dir) {
-                if (pkgids[dir]) return pkgids[dir];
+		eventEmitter.emit( 'done', result );
+		
+		var outfile = opts.o || opts.outfile;
+		if (outfile) fs.writeFile(outfile, JSON.stringify(result, null, 2));
+	};
 
-                walked[dir] = true;
-                var deps = (pkgdeps[dir] || [])
-                    .filter(function (x) { return !walked[x] || pkgids[x]})
-                    .map(get)
-                    .sort()
-                ;
-                pkgids[dir] = shasum(dir + '!' + deps.join(','));
-
-                return pkgids[dir];
-            }
-        })();
-
-        // clean up in case we are keeping the bundle instance around (e.g. for watching)
-        bundle.removeListener( 'dep', onDep );
-        bundle.removeListener( 'package', onPackage );
-        bundle.removeListener( 'bundle', onBundle );
-
-        var mainPackageDir;
-        if(files[mainFile])
-            mainPackageDir = files[mainFile];
-        else {
-            // if the main file has no package.json, we never get a package event.
-            // However, we need a main package, so create one!
-            mainPackageDir = path.dirname(mainFile);
-            packages[mainPackageDir] = {};
-        }
-
-        var result = {
-            packages: Object.keys(packages).reduce(function (acc, dir) {
-                // we used to get rid of packages that dont have assets or directly
-                // but we want to know about them if they ahve indirect dependencies.
-                // just keep all packages around for now, see where it gets us.
-                // if (pkgCount[dir] === 0 && !packages[dir].view) {
-                //     return acc;
-                // }
-                
-                var pkgid = getPkgId(dir);
-                acc[pkgid] = packages[dir];
-                return acc;
-            }, {}),
-            assets: Object.keys(files).reduce(function (acc, file) {
-                acc[file] = getPkgId(files[file]);
-                return acc;
-            }, {}),
-            dependencies: Object.keys(pkgdeps).reduce(function (acc, dir) {
-                var pkgid = getPkgId(dir);
-                acc[pkgid] = pkgdeps[dir].map(getPkgId);
-                return acc;
-            }, {}),
-            mainPackageId: getPkgId(mainPackageDir)
-        };
-
-        console.log( '****', result );
-
-        if (cb) cb(null, result);
-
-        eventEmitter.emit( 'done', result );
-        
-        var outfile = opts.o || opts.outfile;
-        if (outfile) fs.writeFile(outfile, JSON.stringify(result, null, 2));
-    }
+	return eventEmitter;
 };
 
 // function mothership(start, ismothership, cb) {
@@ -241,25 +206,21 @@ module.exports = function (bundle, opts, cb) {
 // }
 
 function getKeys (keys, defaults, pkg) {
-    return uniq(keys.concat(Object.keys(defaults))).map(function (key) {
-        var cur = pkg, curDef = defaults;
-        if (typeof key === 'string' && /\./.test(key)) {
-            key = key.split('.');
-        }
-        
-        if (Array.isArray(key)) {
-            for (var i = 0; i < key.length - 1; i++) {
-                cur = cur && cur[key[i]];
-                curDef = curDef && curDef[key[i]];
-            }
-            key = key[i];
-        }
-        return (cur && cur[key]) || (curDef && curDef[key]);
-    })
-    .reduce(function (acc, g) { return acc.concat(g) }, [])
-    .filter(Boolean);
-}
-
-function values (obj) {
-    return Object.keys(obj).map(function (key) { return obj[key] });
+	return uniq(keys.concat(Object.keys(defaults))).map(function (key) {
+		var cur = pkg, curDef = defaults;
+		if (typeof key === 'string' && /\./.test(key)) {
+			key = key.split('.');
+		}
+		
+		if (Array.isArray(key)) {
+			for (var i = 0; i < key.length - 1; i++) {
+				cur = cur && cur[key[i]];
+				curDef = curDef && curDef[key[i]];
+			}
+			key = key[i];
+		}
+		return (cur && cur[key]) || (curDef && curDef[key]);
+	})
+	.reduce(function (acc, g) { return acc.concat(g) }, [])
+	.filter(Boolean);
 }
