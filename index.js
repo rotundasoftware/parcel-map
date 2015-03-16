@@ -25,10 +25,18 @@ module.exports = function( bundle, opts, cb ) {
 	
 	var mainFile;
 
-	bundle.pipeline.get( 'label' ).unshift( through.obj( function ( row, enc, next ) {
+	var pendingRowsInPipeline = 0;
+
+	bundle.on( 'reset', function() {
+		pendingRowsInPipeline = 0;
+	} );
+
+	bundle.pipeline.get( 'label' ).unshift( through.obj( function( row, enc, next ) {
 		var thisFilePath = row.file;
 		var thisFileIsTheMainFile = row.entry;
 		var thisFileDependencies = _.values( row.deps || {} );
+
+		console.log( 'add to pending', pendingRowsInPipeline++ );
 
 		if( fs.lstatSync( thisFilePath ).isDirectory() ) {
 			var err = new Error( 'Parcel map can not operate on directories. Please specify the full entry point path when running browserify.' );
@@ -42,7 +50,7 @@ module.exports = function( bundle, opts, cb ) {
 			if( ! dependencies[ thisFilePath ] ) dependencies[ thisFilePath ] = [];
 			dependencies[ thisFilePath ] = dependencies[ thisFilePath ].concat( thisFileDependencies );
 		}
-		
+
 		mothership( thisFilePath, function() { return true; }, function( err, res ) {
 			if( err ) {
 				eventEmitter.emit( 'error', err );
@@ -70,7 +78,6 @@ module.exports = function( bundle, opts, cb ) {
 			if( typeof globs === 'string' ) globs = [ globs ];
 			if( ! globs ) globs = [];
 			
-
 			_.each( globs, function( thisGlob ) {
 				var thisGlobAbsPath = path.resolve( dir, thisGlob );
 
@@ -79,18 +86,21 @@ module.exports = function( bundle, opts, cb ) {
 				} );
 			} );
 
+			console.log( 'yup' );
 			next();
 		} );
+	} ), through.obj( function( row, enc, next ) {
+		console.log( 'sub from pending', pendingRowsInPipeline-- );
+		if( pendingRowsInPipeline === 0 ) finish();
+		next();
 	} ) );
 
-	bundle.pipeline.get( 'wrap' ).push( through.obj( function ( row, enc, next ) {
-		finish();
-	} ) );
+	//bundle.pipeline.get( 'label' ).unshift(  );
 
 	function finish() {
-		console.log( '*****' );
-		console.log( dependencies );
-		console.log( packages );
+		// console.log( '*****' );
+		// console.log( dependencies );
+		// console.log( packages );
 
 		packages = _.extend( {}, oldPackages, packages );
 
@@ -133,11 +143,6 @@ module.exports = function( bundle, opts, cb ) {
 			}
 		})();
 
-		// clean up in case we are keeping the bundle instance around (e.g. for watching)
-		//bundle.removeListener( 'dep', onDep );
-		//bundle.removeListener( 'file', onFile );
-	   // bundle.removeListener( 'bundle', onBundle );
-
 		var mainPackageDir;
 		if(files[mainFile])
 			mainPackageDir = files[mainFile];
@@ -173,9 +178,7 @@ module.exports = function( bundle, opts, cb ) {
 			mainPackageId: getPkgId(mainPackageDir)
 		};
 
-	   // console.log( '****', result );
-
-		if (cb) cb(null, result);
+		if( cb ) cb( null, result );
 
 		eventEmitter.emit( 'done', result );
 		
