@@ -9,11 +9,10 @@ var mothership = require( 'mothership' );
 var _ = require( 'underscore' );
 var through = require( 'through2' );
 
-module.exports = function( bundle, opts, cb ) {
+module.exports = function( browserifyInstance, opts ) {
 	var eventEmitter = new EventEmitter();
 
 	var keypaths = opts.keys || opts.key || opts.k;
-	var packageFilter = opts.packageFilter;
 	if (!keypaths) keypaths = [];
 	if (!Array.isArray(keypaths)) keypaths = [ keypaths ];
 	var defaults = opts.defaults || opts.d || {};
@@ -21,27 +20,28 @@ module.exports = function( bundle, opts, cb ) {
 	var files = opts.files || {};
 	var packages = {};
 	var oldPackages = opts.packages;
+	var oldPackageDependencies = opts.dependencies;
 	var dependencies = {};
 	
 	var mainFile;
 
-	var pendingRowsInPipeline = 0;
+	// var pendingRowsInPipeline = 0;
 
-	bundle.on( 'reset', function() {
-		pendingRowsInPipeline = 0;
-	} );
+	// browserifyInstance.on( 'reset', function() {
+	// 	pendingRowsInPipeline = 0;
+	// } );
 
-	bundle.pipeline.get( 'label' ).unshift( through.obj( function( row, enc, next ) {
+	browserifyInstance.pipeline.get( 'label' ).unshift( through.obj( function( row, enc, next ) {
 		var thisFilePath = row.file;
 		var thisFileIsTheMainFile = row.entry;
 		var thisFileDependencies = _.values( row.deps || {} );
 
-		console.log( 'add to pending', pendingRowsInPipeline++ );
+		this.push( row );
 
 		if( fs.lstatSync( thisFilePath ).isDirectory() ) {
 			var err = new Error( 'Parcel map can not operate on directories. Please specify the full entry point path when running browserify.' );
 			eventEmitter.emit( 'error', err );
-			return cb( err );
+			// if( cb ) return cb( err );
 		}
 	
 		if( thisFileIsTheMainFile ) mainFile = thisFilePath;
@@ -54,7 +54,7 @@ module.exports = function( bundle, opts, cb ) {
 		mothership( thisFilePath, function() { return true; }, function( err, res ) {
 			if( err ) {
 				eventEmitter.emit( 'error', err );
-				if( cb ) return cb( err );
+				// if( cb ) return cb( err );
 			}
 
 			// if a file has no mothership package.json, it is not relevant for
@@ -68,7 +68,7 @@ module.exports = function( bundle, opts, cb ) {
 
 			// if we've already registered this package, don't do it again (avoid cycles)
 			if( packages[ dir ] ) return next();
-			if( typeof packageFilter === 'function' ) pkg = packageFilter( pkg, dir );
+			if( typeof browserifyInstance._options.packageFilter === 'function' ) pkg = browserifyInstance._options.packageFilter( pkg, dir );
 		
 			pkg.__path = dir;
 			
@@ -86,22 +86,13 @@ module.exports = function( bundle, opts, cb ) {
 				} );
 			} );
 
-			console.log( 'yup' );
 			next();
 		} );
-	} ), through.obj( function( row, enc, next ) {
-		console.log( 'sub from pending', pendingRowsInPipeline-- );
-		if( pendingRowsInPipeline === 0 ) finish();
-		next();
 	} ) );
-
-	//bundle.pipeline.get( 'label' ).unshift(  );
+	
+	browserifyInstance.pipeline.get( 'label' ).on( 'end', finish );
 
 	function finish() {
-		// console.log( '*****' );
-		// console.log( dependencies );
-		// console.log( packages );
-
 		packages = _.extend( {}, oldPackages, packages );
 
 		var pkgdeps = Object.keys(dependencies).reduce( function( acc, file ) {
@@ -111,7 +102,7 @@ module.exports = function( bundle, opts, cb ) {
 			
 			if( ! acc[pkgid] ) acc[pkgid] = [];
 
-			acc[pkgid] = acc[pkgid].concat( deps
+			acc[pkgid] = _.unique( acc[pkgid].concat( deps
 				.map(function (id) {
 					if (pkgid === files[id]) return null;
 					var did = files[id];
@@ -119,10 +110,12 @@ module.exports = function( bundle, opts, cb ) {
 					//if (pkgCount[did] === 0) return false;
 					return did;
 				})
-				.filter(Boolean) ).sort();
+				.filter(Boolean) ).sort() );
 
 			return acc;
 		}, {});
+
+		pkgdeps = _.extend( {}, oldPackageDependencies, pkgdeps );
 
 		var pkgids = {};
 		var walked = {};
@@ -178,8 +171,7 @@ module.exports = function( bundle, opts, cb ) {
 			mainPackageId: getPkgId(mainPackageDir)
 		};
 
-		if( cb ) cb( null, result );
-
+		// if( cb ) cb( null, result );
 		eventEmitter.emit( 'done', result );
 		
 		var outfile = opts.o || opts.outfile;
