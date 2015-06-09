@@ -147,7 +147,7 @@ module.exports = function( browserifyInstance, opts ) {
 		}
 
 		var result = {
-			packages: Object.keys(packages).reduce(function (acc, dir) {
+			packages: Object.keys(packages).sort().reduce(function (acc, dir) {
 				// we used to get rid of packages that dont have assets or directly
 				// but we want to know about them if they ahve indirect dependencies.
 				// just keep all packages around for now, see where it gets us.
