@@ -5,6 +5,8 @@ gather asset information from file globs in package.json
 You can use this module to build a static asset pipeline to work alongside
 browserify's dependency graph.
 
+NOTE: These docs are badly out of date, but the module is working. See [parcelify](https://github.com/rotundasoftware) for an example of how to use the module.
+
 [![build status](https://secure.travis-ci.org/rotundasoftware/parcel-map.png)](http://travis-ci.org/rotundasoftware/parcel-map)
 
 # example
