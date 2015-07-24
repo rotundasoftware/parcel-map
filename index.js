@@ -25,15 +25,8 @@ module.exports = function( browserifyInstance, opts ) {
 	
 	var mainFile;
 
-	// var pendingRowsInPipeline = 0;
-
-	// browserifyInstance.on( 'reset', function() {
-	// 	pendingRowsInPipeline = 0;
-	// } );
-
 	browserifyInstance.pipeline.get( 'label' ).unshift( through.obj( function( row, enc, next ) {
 		var thisFilePath = row.file;
-		var thisFileIsTheMainFile = row.entry;
 		var thisFileDependencies = _.values( row.deps || {} );
 
 		this.push( row );
@@ -41,10 +34,7 @@ module.exports = function( browserifyInstance, opts ) {
 		if( fs.lstatSync( thisFilePath ).isDirectory() ) {
 			var err = new Error( 'Parcel map can not operate on directories. Please specify the full entry point path when running browserify.' );
 			eventEmitter.emit( 'error', err );
-			// if( cb ) return cb( err );
 		}
-	
-		if( thisFileIsTheMainFile ) mainFile = thisFilePath;
 
 		if( thisFileDependencies.length ) {
 			if( ! dependencies[ thisFilePath ] ) dependencies[ thisFilePath ] = [];
@@ -54,7 +44,6 @@ module.exports = function( browserifyInstance, opts ) {
 		mothership( thisFilePath, function() { return true; }, function( err, res ) {
 			if( err ) {
 				eventEmitter.emit( 'error', err );
-				// if( cb ) return cb( err );
 			}
 
 			// if a file has no mothership package.json, it is not relevant for
@@ -71,6 +60,7 @@ module.exports = function( browserifyInstance, opts ) {
 			if( typeof browserifyInstance._options.packageFilter === 'function' ) pkg = browserifyInstance._options.packageFilter( pkg, dir );
 		
 			pkg.__path = dir;
+			pkg.__isParcel = !! row.entry;
 			
 			packages[ dir ] = pkg;
 
@@ -136,16 +126,6 @@ module.exports = function( browserifyInstance, opts ) {
 			}
 		})();
 
-		var mainPackageDir;
-		if(files[mainFile])
-			mainPackageDir = files[mainFile];
-		else {
-			// if the main file has no package.json, we never get a package event.
-			// However, we need a main package, so create one!
-			mainPackageDir = path.dirname(mainFile);
-			packages[mainPackageDir] = {};
-		}
-
 		var result = {
 			packages: Object.keys(packages).sort().reduce(function (acc, dir) {
 				// we used to get rid of packages that dont have assets or directly
@@ -167,11 +147,9 @@ module.exports = function( browserifyInstance, opts ) {
 				var pkgid = getPkgId(dir);
 				acc[pkgid] = pkgdeps[dir].map(getPkgId);
 				return acc;
-			}, {}),
-			mainPackageId: getPkgId(mainPackageDir)
+			}, {})
 		};
 
-		// if( cb ) cb( null, result );
 		eventEmitter.emit( 'done', result );
 		
 		var outfile = opts.o || opts.outfile;
@@ -180,25 +158,6 @@ module.exports = function( browserifyInstance, opts ) {
 
 	return eventEmitter;
 };
-
-// function mothership(start, ismothership, cb) {
-//   (function findShip (root) {
-//     findParentDir(root, 'package.json', function (err, packageDir) {
-//       if (err) return cb(err);
-//       if (!packageDir) return cb();
-
-//       var pack;
-//       try {
-//         pack = fs.readFileSync( path.join(packageDir, 'package.json'), 'utf8' );
-//         if (ismothership(pack)) return cb(null, { path: path.join(packageDir, 'package.json'), pack: pack });
-//         findShip(path.resolve(root, '..'));
-//       } catch (e) {
-//         cb(e);
-//       }
-//     });
-
-//   })(start);
-// }
 
 function getKeys (keys, defaults, pkg) {
 	return uniq(keys.concat(Object.keys(defaults))).map(function (key) {
