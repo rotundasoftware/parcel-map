@@ -17,7 +17,7 @@ module.exports = function( browserifyInstance, opts ) {
 	if (!Array.isArray(keypaths)) keypaths = [ keypaths ];
 	var defaults = opts.defaults || opts.d || {};
 	
-	var files = opts.files || {};
+	var assets = opts.assets || {};
 	var packages = {};
 	var oldPackages = opts.packages;
 	var oldPackageDependencies = opts.dependencies;
@@ -53,14 +53,25 @@ module.exports = function( browserifyInstance, opts ) {
 			var pkg = res.pack;
 			var dir = path.dirname( res.path );
 
-			files[ thisFilePath ] = dir;
+			assets[ thisFilePath ] = dir;
 
-			// if we've already registered this package, don't do it again (avoid cycles)
-			if( packages[ dir ] ) return next();
+			// if we've already registered this package, don't do it again (avoid cycles), but
+			// do make sure we mark parcels as such, since they can contain both entry point
+			// and non-entry point js files.
+			if( packages[ dir ] ) {
+				if( row.entry ) {
+					packages[ dir ].__isParcel = true;
+					packages[ dir ].__mainPath = thisFilePath;
+				}
+
+				return next();
+			}
+
 			if( typeof browserifyInstance._options.packageFilter === 'function' ) pkg = browserifyInstance._options.packageFilter( pkg, dir );
 		
 			pkg.__path = dir;
 			pkg.__isParcel = !! row.entry;
+			if( pkg.__isParcel ) pkg.__mainPath = thisFilePath;
 			
 			packages[ dir ] = pkg;
 
@@ -72,7 +83,7 @@ module.exports = function( browserifyInstance, opts ) {
 				var thisGlobAbsPath = path.resolve( dir, thisGlob );
 
 				glob.sync( thisGlobAbsPath ).forEach( function( thisAssetPath ) {
-					files[ thisAssetPath ] = dir;
+					assets[ thisAssetPath ] = dir;
 				} );
 			} );
 
@@ -87,15 +98,15 @@ module.exports = function( browserifyInstance, opts ) {
 
 		var pkgdeps = Object.keys(dependencies).reduce( function( acc, file ) {
 			var deps = dependencies[file];
-			var dir = files[file];
+			var dir = assets[file];
 			var pkgid = dir;
 			
 			if( ! acc[pkgid] ) acc[pkgid] = [];
 
 			acc[pkgid] = _.unique( acc[pkgid].concat( deps
 				.map(function (id) {
-					if (pkgid === files[id]) return null;
-					var did = files[id];
+					if (pkgid === assets[id]) return null;
+					var did = assets[id];
 
 					//if (pkgCount[did] === 0) return false;
 					return did;
@@ -139,8 +150,8 @@ module.exports = function( browserifyInstance, opts ) {
 				acc[pkgid] = packages[dir];
 				return acc;
 			}, {}),
-			assets: Object.keys(files).reduce(function (acc, file) {
-				acc[file] = getPkgId(files[file]);
+			assets: Object.keys(assets).reduce(function (acc, file) {
+				acc[file] = getPkgId(assets[file]);
 				return acc;
 			}, {}),
 			dependencies: Object.keys(pkgdeps).reduce(function (acc, dir) {
