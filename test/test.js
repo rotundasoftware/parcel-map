@@ -11,7 +11,8 @@ var opts = {
 
 test('page1', function (t) {
     t.plan(3);
-    var b = browserify(__dirname + '/files/page1/index.js');
+    var mainPath = __dirname + '/files/page1/index.js';
+    var b = browserify(mainPath);
     var expected = { assets: {}, packages: {}, dependencies: {} };
     var hy = shasum(path.dirname(require.resolve('widget/style.css')) + '!');
     var hx = shasum(__dirname + '/files/page1!' + hy);
@@ -19,7 +20,8 @@ test('page1', function (t) {
     expected.packages[hx] = {
         style: '*.css',
         __path: __dirname + '/files/page1',
-        __isParcel: true
+        __isParcel: true,
+        __mainPath: mainPath,
     };
     expected.packages[hy] = {
         style: '*.css',
@@ -47,14 +49,16 @@ test('page1', function (t) {
 
 test('page2', function (t) {
     t.plan(3);
-    var b = browserify(__dirname + '/files/page2/index.js');
+    var mainPath = __dirname + '/files/page2/index.js';
+    var b = browserify(mainPath);
     var expected = { assets: {}, packages: {} };
     
     var hx = shasum(__dirname + '/files/page2!');
     expected.packages[hx] = {
         name: 'page2',
         __path: __dirname + '/files/page2',
-        __isParcel: true
+        __isParcel: true,
+        __mainPath: mainPath
     };
     expected.assets[__dirname + '/files/page2/whee.whatever'] = hx;
     expected.assets[__dirname + '/files/page2/index.js'] = hx;
@@ -70,14 +74,16 @@ test('page2', function (t) {
 
 test('page3', function (t) {
     t.plan(3);
-    var b = browserify(__dirname + '/files/page3/index.js');
+    var mainPath = __dirname + '/files/page3/index.js';
+    var b = browserify(mainPath);
     var expected = { assets: {}, packages: {}, dependencies: {} };
     var hx = shasum(__dirname + '/files/page3!' );
     
     expected.packages[hx] = {
         name : 'page3',
         __path: __dirname + '/files/page3',
-        __isParcel: true
+        __isParcel: true,
+        __mainPath: mainPath
     };
 
     expected.assets[__dirname + '/files/page3/index.js'] = hx;
@@ -94,6 +100,7 @@ test('page3', function (t) {
 test('page4 (cycles)', function (t) {
     t.plan(3);
     var expected = {};
+    var mainPath = __dirname + '/files/page4/index.js';
 
     var expectedShasums = {};
     expectedShasums.b = shasum( __dirname + "/files/page4/node_modules/b!" );
@@ -105,7 +112,8 @@ test('page4 (cycles)', function (t) {
         name: 'page4',
         style: [ '*.css', '*.blah' ],
         __path: __dirname + '/files/page4',
-        __isParcel: true
+        __isParcel: true,
+        __mainPath: mainPath
     };
     expected.packages[ expectedShasums.a ] = {
         style: 'a.css',
@@ -139,7 +147,7 @@ test('page4 (cycles)', function (t) {
     expected.assets[__dirname + '/files/page4/node_modules/b/b.css'] = expectedShasums.b;
     expected.assets[__dirname + '/files/page4/node_modules/b/index.js'] = expectedShasums.b;
 
-    var b = browserify(__dirname + '/files/page4/index.js');
+    var b = browserify(mainPath);
     parcelMap( b, opts ).on( 'done', function( graph ) {
         t.deepEqual(graph.packages, expected.packages);
         t.deepEqual(graph.dependencies, expected.dependencies);
@@ -151,7 +159,8 @@ test('page4 (cycles)', function (t) {
 
 test('page5', function (t) {
     t.plan(3);
-    var b = browserify(__dirname + '/files/page5/index.js');
+    var mainPath = __dirname + '/files/page5/index.js';
+    var b = browserify(mainPath);
     var expected = { assets: {}, packages: {}, dependencies: {} };
     var hy = shasum(__dirname + '/files' + '!');
     var hx = shasum(__dirname + '/files/page5!' + hy);
@@ -159,7 +168,8 @@ test('page5', function (t) {
     expected.packages[hx] = {
         style: ['*.css'],
         __path: __dirname + '/files/page5',
-        __isParcel: true
+        __isParcel: true,
+        __mainPath: mainPath
     };
     expected.packages[hy] = {
         style: 'common.css',
@@ -185,7 +195,8 @@ test('page5', function (t) {
 
 test('page6', function(t) {
     t.plan(3);
-    var b = browserify( __dirname + '/files/page6/index.js' );
+    var mainPath = __dirname + '/files/page6/index.js';
+    var b = browserify( mainPath);
 
     var expectedDependencies = {};
 
