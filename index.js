@@ -46,13 +46,20 @@ module.exports = function( browserifyInstance, opts ) {
 				eventEmitter.emit( 'error', err );
 			}
 
-			// if a file has no mothership package.json, it is not relevant for
-			// the purposes of a parcel. parcels do not care about 'orphaned' js files.
-			if( ! res ) return next();
+			var pkg, dir;
 
-			var pkg = res.pack;
-			var dir = path.dirname( res.path );
-
+			// the file has no mothership package.json. eventhough it is not usually relevant for
+			// the purposes of parcelify, since parcelify does not care about orphaned
+			// js files without any other asset types, we still have to include it in the
+			// map. it might be an entry point and therefore cartero needs an ide for it.
+			if( ! res ) {
+				pkg = {};
+				dir = path.dirname( thisFilePath );
+			} else {
+				pkg = res.pack;
+				dir = path.dirname( res.path );
+			}
+			
 			assets[ thisFilePath ] = dir;
 
 			// if we've already registered this package, don't do it again (avoid cycles), but
