@@ -1,7 +1,7 @@
 {
   "name": "parcel-map",
   "description": "gather asset information from file globs in package.json",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "author": {
     "name": "Rotunda Software",
     "email": "support@rotundasoftware.com"
